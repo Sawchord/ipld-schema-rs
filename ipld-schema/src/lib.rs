@@ -1,35 +1,42 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_variables)]
 
+mod parse;
 mod representation;
 
+use representation::{ByteRepresentation, EnumRepresentation, UnitRepresentation};
 use std::collections::BTreeMap;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Doc<T> {
+    doc: Option<String>,
+    ty: T,
+}
 
 /// The toplevel schema represents a Ipld Data structure
 /// mapping names
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IpldSchema(BTreeMap<String, DocIpldType>);
-
-/// A type declaration, optionally annotated by a doc block
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct DocIpldType {
-    doc: Option<String>,
-    ty: IpldType,
-}
+pub struct IpldSchema(BTreeMap<String, Doc<IpldType>>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum IpldType {
     Bool,
     String,
-    // TODO: Bytes
+    Bytes(ByteRepresentation),
     Int,
     Float,
     // TODO: Map
     // TODO: List
-    // TODO: Link
+    Link(String),
     // TODO: Union
     // TODO: Struct
-    // TODO: Enum
-    // TODO: Unit
-    // TODO: Any
-    // TODO: Copy
+    Enum(EnumType),
+    Unit(UnitRepresentation),
+    Any,
+    Copy(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct EnumType {
+    members: Vec<Doc<String>>,
+    representation: EnumRepresentation,
 }
