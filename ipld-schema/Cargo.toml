@@ -8,3 +8,5 @@ publish = { workspace = true }
 categories = { workspace = true }
 license = { workspace = true }
 
+[dependencies]
+nom = { version = "7.1.3" }

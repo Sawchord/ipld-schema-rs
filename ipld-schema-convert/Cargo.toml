@@ -8,3 +8,6 @@ publish = { workspace = true }
 categories = { workspace = true }
 license = { workspace = true }
 
+[dependencies]
+libipld = { workspace = true }
+thiserror = { workspace = true }

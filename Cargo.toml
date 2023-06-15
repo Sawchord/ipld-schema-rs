@@ -16,3 +16,6 @@ categories = []
 license = "LGPL-3.0-or-later"
 
 [workspace.dependencies]
+libipld = { version = "0.16.0" }
+
+thiserror = { version = "1.0.40" }
