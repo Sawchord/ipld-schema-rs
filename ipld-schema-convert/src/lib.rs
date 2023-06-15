@@ -23,25 +23,69 @@ pub enum IpldConvertError {
     IntegerRangeError(&'static str),
 }
 
-// TODO: Extend this to all integer types u8, u16, u32, u64, i8, i16, i32, i64
-impl IpldConvert for u8 {
+macro_rules! implement_integer {
+    ($n: ty, $s: literal) => {
+        impl IpldConvert for $n {
+            fn try_from_ipld(data: &Ipld) -> Result<Self, IpldConvertError>
+            where
+                Self: Sized,
+            {
+                match data {
+                    Ipld::Integer(val) => {
+                        <$n>::try_from(*val).map_err(|_| IpldConvertError::IntegerRangeError($s))
+                    }
+                    val => Err(IpldConvertError::InvalidType($s, format!("{:?}", val))),
+                }
+            }
+
+            fn to_ipld(&self) -> Ipld {
+                Ipld::Integer(i128::from(*self))
+            }
+        }
+    };
+}
+
+implement_integer!(u8, "u8");
+implement_integer!(u16, "u16");
+implement_integer!(u32, "u32");
+implement_integer!(u64, "u64");
+implement_integer!(i8, "i8");
+implement_integer!(i16, "i16");
+implement_integer!(i32, "i32");
+implement_integer!(i64, "i64");
+
+impl IpldConvert for () {
     fn try_from_ipld(data: &Ipld) -> Result<Self, IpldConvertError>
     where
         Self: Sized,
     {
         match data {
-            Ipld::Integer(val) => {
-                u8::try_from(*val).map_err(|_| IpldConvertError::IntegerRangeError("u8"))
-            }
-            val => Err(IpldConvertError::InvalidType("u8", format!("{:?}", val))),
+            Ipld::Null => Ok(()),
+            val => Err(IpldConvertError::InvalidType("()", format!("{:?}", val))),
         }
     }
 
     fn to_ipld(&self) -> Ipld {
-        Ipld::Integer(i128::from(*self))
+        Ipld::Null
     }
 }
 
-// TODO: Convert for Floats (Test, weather macro can be used)
+impl IpldConvert for bool {
+    fn try_from_ipld(data: &Ipld) -> Result<Self, IpldConvertError>
+    where
+        Self: Sized,
+    {
+        match data {
+            Ipld::Bool(val) => Ok(*val),
+            val => Err(IpldConvertError::InvalidType("bool", format!("{:?}", val))),
+        }
+    }
+
+    fn to_ipld(&self) -> Ipld {
+        Ipld::Bool(*self)
+    }
+}
+
+// TODO: Convert for Floats
 // TODO: Convert for stringlikes
 // TODO: Convert for Bytes
