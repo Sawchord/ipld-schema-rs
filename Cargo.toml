@@ -1,0 +1,18 @@
+[workspace]
+
+members = [
+    "ipld-schema",
+    "ipld-schema-convert"
+]
+
+
+[workspace.package]
+authors = ["Leon Tan"]
+edition = "2021"
+version = "0.1.0"
+readme = "./README.md"
+publish = false
+categories = []
+license = "LGPL-3.0-or-later"
+
+[workspace.dependencies]
