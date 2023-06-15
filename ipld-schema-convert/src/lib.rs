@@ -23,6 +23,7 @@ pub enum IpldConvertError {
     IntegerRangeError(&'static str),
 }
 
+/// DRY macro for implementing the different integer types
 macro_rules! implement_integer {
     ($n: ty, $s: literal) => {
         impl IpldConvert for $n {
@@ -34,7 +35,10 @@ macro_rules! implement_integer {
                     Ipld::Integer(val) => {
                         <$n>::try_from(*val).map_err(|_| IpldConvertError::IntegerRangeError($s))
                     }
-                    val => Err(IpldConvertError::InvalidType($s, format!("{:?}", val))),
+                    val => Err(IpldConvertError::InvalidType(
+                        "Integer",
+                        format!("{:?}", val),
+                    )),
                 }
             }
 
@@ -61,7 +65,7 @@ impl IpldConvert for () {
     {
         match data {
             Ipld::Null => Ok(()),
-            val => Err(IpldConvertError::InvalidType("()", format!("{:?}", val))),
+            val => Err(IpldConvertError::InvalidType("Null", format!("{:?}", val))),
         }
     }
 
@@ -77,7 +81,7 @@ impl IpldConvert for bool {
     {
         match data {
             Ipld::Bool(val) => Ok(*val),
-            val => Err(IpldConvertError::InvalidType("bool", format!("{:?}", val))),
+            val => Err(IpldConvertError::InvalidType("Bool", format!("{:?}", val))),
         }
     }
 
@@ -86,6 +90,37 @@ impl IpldConvert for bool {
     }
 }
 
-// TODO: Convert for Floats
-// TODO: Convert for stringlikes
+impl IpldConvert for f32 {
+    fn try_from_ipld(data: &Ipld) -> Result<Self, IpldConvertError>
+    where
+        Self: Sized,
+    {
+        match data {
+            Ipld::Float(val) => Ok(*val as f32),
+            val => Err(IpldConvertError::InvalidType("Float", format!("{:?}", val))),
+        }
+    }
+
+    fn to_ipld(&self) -> Ipld {
+        Ipld::Float(f64::from(*self))
+    }
+}
+
+impl IpldConvert for f64 {
+    fn try_from_ipld(data: &Ipld) -> Result<Self, IpldConvertError>
+    where
+        Self: Sized,
+    {
+        match data {
+            Ipld::Float(val) => Ok(*val),
+            val => Err(IpldConvertError::InvalidType("Float", format!("{:?}", val))),
+        }
+    }
+
+    fn to_ipld(&self) -> Ipld {
+        Ipld::Float(*self)
+    }
+}
+
 // TODO: Convert for Bytes
+// TODO: Convert for stringlikes
