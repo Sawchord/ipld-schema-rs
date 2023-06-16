@@ -96,8 +96,8 @@ mod tests {
     #[test]
     fn test_any_declaration_commented() {
         let commented_any = "\
-            ## This is the documentation of this type\n\
-            ##  \n\n\
+            # This is the documentation of this type\n\
+            #  \n\n\
             type Commented_Any any  \n";
 
         let expected_doc = "\
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_bytes_with_advances_repr() {
         let advanced_bytes = "\
-        ## These bytes are more advanced than normal bytes\n\
+        # These bytes are more advanced than normal bytes\n\
         type AdvancedBytes bytes representation advanced Taste\
         ";
 

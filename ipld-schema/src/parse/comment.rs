@@ -10,7 +10,7 @@ use nom::{
 /// Parses a single line of comments that begins with `##` and ends with a newline
 fn parse_comment_line(input: &str) -> IResult<&str, &str> {
     map(
-        tuple((space0, tag("##"), space0, not_line_ending, line_ending)),
+        tuple((space0, tag("#"), space0, not_line_ending, line_ending)),
         |(_, _, _, data, _)| data,
     )(input)
 }
@@ -34,7 +34,7 @@ mod tests {
 
     #[test]
     fn test_parse_comment_line() {
-        let comment = "    ## This is a comment line\n";
+        let comment = "    # This is a comment line\n";
         let not_comment = "This is not a comment";
 
         assert!(parse_comment_line(comment).is_ok());
@@ -44,10 +44,10 @@ mod tests {
     #[test]
     fn test_parse_comment_block() {
         let comment = "\
-            ## This is a comment block\n\
-            ## It starts with ## in the beginning\n\
+            # This is a comment block\n\
+            # It starts with ## in the beginning\n\
                \n\
-            ## Empty lines are not a problem for it\n\
+            # Empty lines are not a problem for it\n\
             This is no longer a comment\n\
         ";
 
