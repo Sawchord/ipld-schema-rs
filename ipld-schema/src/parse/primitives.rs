@@ -63,3 +63,74 @@ fn parse_advanced(input: &str) -> IResult<&str, &str> {
         |(_, _, name)| name,
     )(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{parse::parse_type_declaration, Doc};
+
+    use super::*;
+
+    #[test]
+    fn test_bool_declaration_uncommented() {
+        let uncommented_bool = "type UncommentedBool bool";
+        let expected_result = (
+            "UncommentedBool".to_string(),
+            Doc {
+                doc: None,
+                ty: IpldType::Bool,
+            },
+        );
+
+        assert_eq!(
+            parse_type_declaration(uncommented_bool).unwrap().1,
+            expected_result
+        );
+    }
+
+    #[test]
+    fn test_any_declaration_commented() {
+        let commented_any = "\
+            ## This is the documentation of this type\n\
+            ##  \n\n\
+            type Commented_Any any  \n";
+
+        let expected_doc = "\
+            This is the documentation of this type\n\
+            \n\
+        ";
+        let expected_result = (
+            "Commented_Any".to_string(),
+            Doc {
+                doc: Some(String::from(expected_doc)),
+                ty: IpldType::Any,
+            },
+        );
+
+        assert_eq!(
+            parse_type_declaration(commented_any).unwrap().1,
+            expected_result
+        );
+    }
+
+    #[test]
+    fn test_bytes_with_advances_repr() {
+        let advanced_bytes = "\
+        ## These bytes are more advanced than normal bytes\n\
+        type AdvancedBytes bytes representation advanced Taste\
+        ";
+
+        let expected_doc = "These bytes are more advanced than normal bytes\n";
+        let expected_result = (
+            "AdvancedBytes".to_string(),
+            Doc {
+                doc: Some(String::from(expected_doc)),
+                ty: IpldType::Bytes(BytesRepresentation::Advanced("Taste".to_string())),
+            },
+        );
+
+        assert_eq!(
+            parse_type_declaration(advanced_bytes).unwrap().1,
+            expected_result
+        );
+    }
+}
