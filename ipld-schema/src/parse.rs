@@ -2,16 +2,6 @@ mod comment;
 mod enumerate;
 mod primitives;
 
-use crate::{Doc, IpldSchema, IpldType};
-use nom::{
-    branch::alt,
-    bytes::complete::{tag, take_till1, take_while1},
-    character::complete::{multispace0, multispace1},
-    combinator::{map, opt, peek},
-    sequence::tuple,
-    AsChar, IResult,
-};
-
 use self::{
     comment::parse_comment_block,
     primitives::{
@@ -19,13 +9,45 @@ use self::{
         parse_unit,
     },
 };
+use crate::{Doc, IpldSchema, IpldType};
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_till1, take_while1},
+    character::complete::{multispace0, multispace1},
+    combinator::{map, opt, peek},
+    multi::fold_many0,
+    sequence::tuple,
+    AsChar, Finish, IResult,
+};
+use std::collections::BTreeMap;
+use thiserror::Error;
 
-pub enum IpldSchemaParseError {}
+// TODO: Proper error handling
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum IpldSchemaParseError {
+    #[error("Generic Error")]
+    Generic,
+}
 
 impl IpldSchema {
     pub fn parse(input: impl AsRef<str>) -> Result<Self, IpldSchemaParseError> {
-        todo!()
+        parse_schema(input.as_ref())
+            .finish()
+            .map(|(_, schema)| IpldSchema(schema))
+            .map_err(|_| IpldSchemaParseError::Generic)
     }
+}
+
+fn parse_schema(input: &str) -> IResult<&str, BTreeMap<String, Doc<IpldType>>> {
+    fold_many0(
+        parse_type_declaration,
+        || BTreeMap::new(),
+        |mut schema, (name, decl)| {
+            schema.insert(name, decl);
+            schema
+        },
+    )(input)
 }
 
 /// Parses a complete type declaration, i.e. the type name and the type definiton
