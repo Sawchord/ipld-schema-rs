@@ -2,13 +2,19 @@ mod comment;
 mod enumerate;
 mod primitives;
 
-use crate::{IpldSchema, IpldType};
+use crate::{Doc, IpldSchema, IpldType};
 use nom::{
+    branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
     character::complete::multispace0,
-    combinator::{map, peek},
+    combinator::{map, opt, peek},
     sequence::tuple,
     AsChar, IResult,
+};
+
+use self::{
+    comment::parse_comment_block,
+    primitives::{parse_any, parse_bool},
 };
 
 pub enum IpldSchemaParseError {}
@@ -20,13 +26,28 @@ impl IpldSchema {
 }
 
 /// Parses a complete type declaration, i.e. the type name and the type definiton
-fn parse_type_declaration(input: &str) -> IResult<&str, (String, IpldType)> {
-    map(tuple((multispace0, tag("type"), multispace0)), |x| todo!())(input)
-}
-
-/// Parses the type definition
-fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
-    todo!()
+fn parse_type_declaration(input: &str) -> IResult<&str, (String, Doc<IpldType>)> {
+    map(
+        tuple((
+            opt(parse_comment_block),
+            multispace0,
+            tag("type"),
+            multispace0,
+            parse_type_name,
+            multispace0,
+            parse_type_definition,
+            multispace0,
+        )),
+        |parsed| {
+            (
+                String::from(parsed.4),
+                Doc {
+                    doc: parsed.0,
+                    ty: parsed.6,
+                },
+            )
+        },
+    )(input)
 }
 
 /// Checks that a type name is correctly formed:
@@ -43,9 +64,56 @@ fn parse_type_name(input: &str) -> IResult<&str, &str> {
     )(input)
 }
 
+/// Parses the type definition
+fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
+    alt((parse_bool, parse_any))(input)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_bool_declaration_uncommented() {
+        let uncommented_bool = "type UncommentedBool bool";
+        let expected_result = (
+            String::from("UncommentedBool"),
+            Doc {
+                doc: None,
+                ty: IpldType::Bool,
+            },
+        );
+
+        assert_eq!(
+            parse_type_declaration(uncommented_bool).unwrap().1,
+            expected_result
+        );
+    }
+
+    #[test]
+    fn test_any_declaration_commented() {
+        let commented_any = "\
+            ## This is the documentation of this type\n\
+            ##  \n\n\
+            type Commented_Any any  \n";
+
+        let expected_doc = "\
+            This is the documentation of this type\n\
+            \n\
+        ";
+        let expected_result = (
+            String::from("Commented_Any"),
+            Doc {
+                doc: Some(String::from(expected_doc)),
+                ty: IpldType::Any,
+            },
+        );
+
+        assert_eq!(
+            parse_type_declaration(commented_any).unwrap().1,
+            expected_result
+        );
+    }
 
     #[test]
     fn test_parse_type_name() {

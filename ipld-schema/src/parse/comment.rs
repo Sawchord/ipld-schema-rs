@@ -1,6 +1,6 @@
 use nom::{
     bytes::complete::tag,
-    character::complete::{line_ending, not_line_ending, space0},
+    character::complete::{line_ending, multispace0, not_line_ending, space0},
     combinator::{map, opt},
     multi::many1,
     sequence::tuple,
@@ -16,12 +16,9 @@ fn parse_comment_line(input: &str) -> IResult<&str, &str> {
 }
 
 /// Parses a comment block. Each line has to be either a comment or an empty line
-fn parse_comment_block(input: &str) -> IResult<&str, String> {
+pub(crate) fn parse_comment_block(input: &str) -> IResult<&str, String> {
     map(
-        many1(tuple((
-            parse_comment_line,
-            opt(tuple((space0, line_ending))),
-        ))),
+        many1(tuple((parse_comment_line, opt(multispace0)))),
         |lines| {
             lines
                 .into_iter()
