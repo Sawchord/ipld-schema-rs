@@ -54,7 +54,13 @@ fn parse_bytes_representation(input: &str) -> IResult<&str, BytesRepresentation>
     )(input)
 }
 
-// TODO: Link
+pub(crate) fn parse_link(input: &str) -> IResult<&str, IpldType> {
+    map(
+        tuple((tag("&"), multispace0, parse_type_name)),
+        |(_, _, link)| IpldType::Link(link.to_string()),
+    )(input)
+}
+
 // TODO: Unit
 
 fn parse_advanced(input: &str) -> IResult<&str, &str> {
