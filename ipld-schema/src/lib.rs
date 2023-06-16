@@ -3,7 +3,7 @@
 mod parse;
 mod representation;
 
-use representation::{ByteRepresentation, EnumRepresentation, UnitRepresentation};
+use representation::{BytesRepresentation, EnumRepresentation, UnitRepresentation};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,7 +21,7 @@ pub struct IpldSchema(BTreeMap<String, Doc<IpldType>>);
 enum IpldType {
     Bool,
     String,
-    Bytes(ByteRepresentation),
+    Bytes(BytesRepresentation),
     Int,
     Float,
     // TODO: Map

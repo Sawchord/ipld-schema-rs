@@ -1,7 +1,7 @@
 use strum_macros::{Display, EnumString};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ByteRepresentation {
+pub(crate) enum BytesRepresentation {
     Bytes,
     Advanced(String),
 }

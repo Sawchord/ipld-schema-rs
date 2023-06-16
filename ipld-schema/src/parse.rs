@@ -14,7 +14,7 @@ use nom::{
 
 use self::{
     comment::parse_comment_block,
-    primitives::{parse_any, parse_bool},
+    primitives::{parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_string},
 };
 
 pub enum IpldSchemaParseError {}
@@ -66,18 +66,27 @@ fn parse_type_name(input: &str) -> IResult<&str, &str> {
 
 /// Parses the type definition
 fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
-    alt((parse_bool, parse_any))(input)
+    alt((
+        parse_bool,
+        parse_string,
+        parse_int,
+        parse_float,
+        parse_any,
+        parse_bytes,
+    ))(input)
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::representation::BytesRepresentation;
+
     use super::*;
 
     #[test]
     fn test_bool_declaration_uncommented() {
         let uncommented_bool = "type UncommentedBool bool";
         let expected_result = (
-            String::from("UncommentedBool"),
+            "UncommentedBool".to_string(),
             Doc {
                 doc: None,
                 ty: IpldType::Bool,
@@ -102,7 +111,7 @@ mod tests {
             \n\
         ";
         let expected_result = (
-            String::from("Commented_Any"),
+            "Commented_Any".to_string(),
             Doc {
                 doc: Some(String::from(expected_doc)),
                 ty: IpldType::Any,
@@ -111,6 +120,28 @@ mod tests {
 
         assert_eq!(
             parse_type_declaration(commented_any).unwrap().1,
+            expected_result
+        );
+    }
+
+    #[test]
+    fn test_bytes_with_advances_repr() {
+        let advanced_bytes = "\
+        ## These bytes are more advanced than normal bytes\n\
+        type AdvancedBytes bytes representation advanced Taste\
+        ";
+
+        let expected_doc = "These bytes are more advanced than normal bytes\n";
+        let expected_result = (
+            "AdvancedBytes".to_string(),
+            Doc {
+                doc: Some(String::from(expected_doc)),
+                ty: IpldType::Bytes(BytesRepresentation::Advanced("Taste".to_string())),
+            },
+        );
+
+        assert_eq!(
+            parse_type_declaration(advanced_bytes).unwrap().1,
             expected_result
         );
     }
