@@ -8,10 +8,7 @@ pub(crate) enum BytesRepresentation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum MapRepresentation {
-    StringPairs {
-        inner_delim: String,
-        outer_delim: String,
-    },
+    StringPairs(StringPairs),
     ListPairs,
     Advanced(String),
 }
@@ -20,6 +17,12 @@ pub(crate) enum MapRepresentation {
 pub(crate) enum ListRepresentation {
     List,
     Advanced(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct StringPairs {
+    inner_delim: String,
+    outer_delim: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, EnumString)]

@@ -6,7 +6,7 @@ use crate::{Doc, IpldSchema, IpldType};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
-    character::complete::multispace0,
+    character::complete::{multispace0, multispace1},
     combinator::{map, opt, peek},
     sequence::tuple,
     AsChar, IResult,
@@ -14,7 +14,9 @@ use nom::{
 
 use self::{
     comment::parse_comment_block,
-    primitives::{parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_string},
+    primitives::{
+        parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
+    },
 };
 
 pub enum IpldSchemaParseError {}
@@ -32,9 +34,9 @@ fn parse_type_declaration(input: &str) -> IResult<&str, (String, Doc<IpldType>)>
             opt(parse_comment_block),
             multispace0,
             tag("type"),
-            multispace0,
+            multispace1,
             parse_type_name,
-            multispace0,
+            multispace1,
             parse_type_definition,
             multispace0,
         )),
@@ -73,6 +75,7 @@ fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
         parse_float,
         parse_any,
         parse_bytes,
+        parse_link,
     ))(input)
 }
 

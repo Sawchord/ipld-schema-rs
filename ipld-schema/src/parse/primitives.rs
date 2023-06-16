@@ -2,7 +2,7 @@ use crate::{representation::BytesRepresentation, IpldType};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::multispace0,
+    character::complete::{multispace0, space0, space1},
     combinator::{map, opt},
     sequence::tuple,
     IResult,
@@ -40,9 +40,9 @@ pub(crate) fn parse_bytes(input: &str) -> IResult<&str, IpldType> {
 fn parse_bytes_representation(input: &str) -> IResult<&str, BytesRepresentation> {
     map(
         tuple((
-            multispace0,
+            space1,
             tag("representation"),
-            multispace0,
+            space1,
             alt((
                 map(parse_advanced, |advanced| {
                     BytesRepresentation::Advanced(advanced.to_string())
@@ -56,7 +56,7 @@ fn parse_bytes_representation(input: &str) -> IResult<&str, BytesRepresentation>
 
 pub(crate) fn parse_link(input: &str) -> IResult<&str, IpldType> {
     map(
-        tuple((tag("&"), multispace0, parse_type_name)),
+        tuple((tag("&"), space0, parse_type_name)),
         |(_, _, link)| IpldType::Link(link.to_string()),
     )(input)
 }
@@ -138,5 +138,18 @@ mod tests {
             parse_type_declaration(advanced_bytes).unwrap().1,
             expected_result
         );
+    }
+
+    #[test]
+    fn test_link() {
+        let link = "type LinkedData &Data";
+        let expected_result = (
+            "LinkedData".to_string(),
+            Doc {
+                doc: None,
+                ty: IpldType::Link("Data".to_string()),
+            },
+        );
+        assert_eq!(parse_type_declaration(link).unwrap().1, expected_result);
     }
 }
