@@ -1,8 +1,11 @@
-use crate::{representation::BytesRepresentation, IpldType};
+use crate::{
+    representation::{BytesRepresentation, UnitRepresentation},
+    IpldType,
+};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{multispace0, space0, space1},
+    character::complete::{space0, space1},
     combinator::{map, opt},
     sequence::tuple,
     IResult,
@@ -61,11 +64,33 @@ pub(crate) fn parse_link(input: &str) -> IResult<&str, IpldType> {
     )(input)
 }
 
-// TODO: Unit
+pub(crate) fn parse_unit(input: &str) -> IResult<&str, IpldType> {
+    map(
+        tuple((tag("unit"), parse_unit_representation)),
+        |(_, repr)| IpldType::Unit(repr),
+    )(input)
+}
+
+fn parse_unit_representation(input: &str) -> IResult<&str, UnitRepresentation> {
+    map(
+        tuple((
+            space1,
+            tag("representation"),
+            space1,
+            alt((
+                map(tag("null"), |_| UnitRepresentation::Null),
+                map(tag("true"), |_| UnitRepresentation::True),
+                map(tag("false"), |_| UnitRepresentation::False),
+                map(tag("emptymap"), |_| UnitRepresentation::EmptyMap),
+            )),
+        )),
+        |(_, _, _, repr)| repr,
+    )(input)
+}
 
 fn parse_advanced(input: &str) -> IResult<&str, &str> {
     map(
-        tuple((tag("advanced"), multispace0, parse_type_name)),
+        tuple((tag("advanced"), space1, parse_type_name)),
         |(_, _, name)| name,
     )(input)
 }
@@ -151,5 +176,18 @@ mod tests {
             },
         );
         assert_eq!(parse_type_declaration(link).unwrap().1, expected_result);
+    }
+
+    #[test]
+    fn test_unit() {
+        let unit = "type MyUnit unit representation true";
+        let expexted_result = (
+            "MyUnit".to_string(),
+            Doc {
+                doc: None,
+                ty: IpldType::Unit(UnitRepresentation::True),
+            },
+        );
+        assert_eq!(parse_type_declaration(unit).unwrap().1, expexted_result);
     }
 }

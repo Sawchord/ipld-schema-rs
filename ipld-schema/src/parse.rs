@@ -16,6 +16,7 @@ use self::{
     comment::parse_comment_block,
     primitives::{
         parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
+        parse_unit,
     },
 };
 
@@ -76,6 +77,7 @@ fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
         parse_any,
         parse_bytes,
         parse_link,
+        parse_unit,
     ))(input)
 }
 
