@@ -1,8 +1,10 @@
-use crate::{representation::EnumRepresentation, IpldType};
+use super::comment::parse_comment_block;
+use crate::IpldType;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
-    combinator::{map, peek},
+    character::complete::{multispace0, multispace1, space0, space1},
+    combinator::{map, opt, peek},
     sequence::tuple,
     AsChar, IResult,
 };
@@ -11,20 +13,54 @@ pub(crate) fn parse_enum(input: &str) -> IResult<&str, IpldType> {
     todo!()
 }
 
+fn parse_enum_member(input: &str) -> IResult<&str, (Option<String>, String, EnumMemberTag)> {
+    map(
+        tuple((
+            opt(parse_comment_block),
+            multispace0,
+            tag("|"),
+            parse_enum_member_name,
+            opt(parse_enum_member_tag),
+            multispace1,
+        )),
+        |(comment, _, _, name, tag, _)| {
+            (
+                comment,
+                name.to_string(),
+                tag.unwrap_or(EnumMemberTag::String(name.to_string())),
+            )
+        },
+    )(input)
+}
+
 enum EnumMemberTag {
     Int(i128),
     String(String),
 }
 
 fn parse_enum_member_tag(input: &str) -> IResult<&str, EnumMemberTag> {
-    alt((
-        map(parse_enum_member_name, |name| {
-            EnumMemberTag::String(name.to_string())
-        }),
-        map(nom::character::complete::i128, |int| {
-            EnumMemberTag::Int(int)
-        }),
-    ))(input)
+    map(
+        tuple((
+            space1,
+            tag("("),
+            space0,
+            tag("\""),
+            space0,
+            alt((
+                map(parse_enum_member_name, |name| {
+                    EnumMemberTag::String(name.to_string())
+                }),
+                map(nom::character::complete::i128, |int| {
+                    EnumMemberTag::Int(int)
+                }),
+            )),
+            space0,
+            tag("\""),
+            space0,
+            tag(")"),
+        )),
+        |tag| tag.5,
+    )(input)
 }
 
 enum EnumRepresentationTag {
