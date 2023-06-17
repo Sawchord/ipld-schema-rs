@@ -1,16 +1,77 @@
 use super::comment::parse_comment_block;
-use crate::IpldType;
+use crate::{representation::EnumRepresentation, Doc, IpldType};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
     character::complete::{multispace0, multispace1, space0, space1},
-    combinator::{map, opt, peek},
+    combinator::{map, map_res, opt, peek},
+    error::{make_error, Error, ErrorKind},
+    multi::many1,
     sequence::tuple,
     AsChar, IResult,
 };
 
 pub(crate) fn parse_enum(input: &str) -> IResult<&str, IpldType> {
-    todo!()
+    map_res(
+        tuple((
+            tag("enum"),
+            space0,
+            tag("{"),
+            parse_enum_members,
+            tag("}"),
+            opt(parse_enum_representation_tag),
+        )),
+        |(_, _, _, members, _, representation)| {
+            // If no representation is given, we default to string
+            let representation = representation.unwrap_or(EnumRepresentationTag::String);
+
+            // Parse the representation tags
+            // This failes, if the tags are inconsistent with the representation specification
+            let representation = match representation {
+                EnumRepresentationTag::String => {
+                    let tags = members
+                        .iter()
+                        .map(|(_, _, tag)| match tag {
+                            EnumMemberTag::Int(_) => {
+                                Err(make_error::<&str, Error<&str>>(&"", ErrorKind::Verify))
+                            }
+                            EnumMemberTag::String(name) => Ok(name.clone()),
+                        })
+                        .collect::<Result<_, _>>()?;
+                    EnumRepresentation::String(tags)
+                }
+                EnumRepresentationTag::Int => {
+                    let tags = members
+                        .iter()
+                        .map(|(_, _, tag)| match tag {
+                            EnumMemberTag::Int(int) => Ok(*int),
+                            EnumMemberTag::String(_) => {
+                                Err(make_error::<&str, Error<&str>>(&"", ErrorKind::Verify))
+                            }
+                        })
+                        .collect::<Result<_, _>>()?;
+                    EnumRepresentation::Int(tags)
+                }
+            };
+
+            let members = members
+                .into_iter()
+                .map(|(comment, name, _)| Doc {
+                    doc: comment,
+                    ty: name,
+                })
+                .collect();
+
+            Ok::<_, Error<&str>>(IpldType::Enum(crate::EnumType {
+                members,
+                representation,
+            }))
+        },
+    )(input)
+}
+
+fn parse_enum_members(input: &str) -> IResult<&str, Vec<(Option<String>, String, EnumMemberTag)>> {
+    many1(parse_enum_member)(input)
 }
 
 fn parse_enum_member(input: &str) -> IResult<&str, (Option<String>, String, EnumMemberTag)> {
@@ -84,3 +145,6 @@ fn parse_enum_member_name(input: &str) -> IResult<&str, &str> {
         |(_, x)| x,
     )(input)
 }
+
+// TODO: Test: Parse a file with enums
+// TODO: Test: Parse a file with mismatching representation tags
