@@ -80,11 +80,12 @@ fn parse_enum_member(input: &str) -> IResult<&str, (Option<String>, String, Enum
             opt(parse_comment_block),
             multispace0,
             tag("|"),
+            space1,
             parse_enum_member_name,
             opt(parse_enum_member_tag),
             multispace1,
         )),
-        |(comment, _, _, name, tag, _)| {
+        |(comment, _, _, _, name, tag, _)| {
             (
                 comment,
                 name.to_string(),
@@ -146,5 +147,35 @@ fn parse_enum_member_name(input: &str) -> IResult<&str, &str> {
     )(input)
 }
 
-// TODO: Test: Parse a file with enums
-// TODO: Test: Parse a file with mismatching representation tags
+#[cfg(test)]
+mod tests {
+    use crate::{representation::EnumRepresentation, EnumType, IpldSchema, IpldType};
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn test_enum_parse() {
+        let file = include_str!("../../test/enums.ipldsch");
+
+        let parsed_schema = IpldSchema::parse(file).unwrap();
+        let mut expected_schema = IpldSchema(BTreeMap::new());
+        expected_schema.0.insert(
+            "StatusString".to_string(),
+            crate::Doc {
+                doc: Some("Enum using string representation\n".to_string()),
+                ty: IpldType::Enum(EnumType {
+                    members: vec![],
+                    representation: EnumRepresentation::String(vec![
+                        "Nay".to_string(),
+                        "Yay".to_string(),
+                        "Maybe".to_string(),
+                    ]),
+                }),
+            },
+        );
+        // TODO: Second structure is missing
+
+        assert_eq!(parsed_schema, expected_schema);
+    }
+
+    // TODO:  Parse a file with mismatching representation tags
+}

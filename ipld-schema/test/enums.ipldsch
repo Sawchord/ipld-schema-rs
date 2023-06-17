@@ -1,0 +1,14 @@
+# Enum using string representation
+type StatusString enum {
+  | Nope ("Nay")
+  | Yep  ("Yay")
+  # This variant is selfdescribing
+  | Maybe
+}
+
+# Enum using integer representation
+type StatusInt enum {
+  | Nope  ("0")
+  | Yep   ("1")
+  | Maybe ("100")
+} representation int

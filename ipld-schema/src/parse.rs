@@ -4,6 +4,7 @@ mod primitives;
 
 use self::{
     comment::parse_comment_block,
+    enumerate::parse_enum,
     primitives::{
         parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
         parse_unit,
@@ -40,6 +41,8 @@ impl IpldSchema {
 }
 
 fn parse_schema(input: &str) -> IResult<&str, BTreeMap<String, Doc<IpldType>>> {
+    // TODO: Handle name duplication
+    // TODO: How to handle non empty input
     fold_many0(
         parse_type_declaration,
         || BTreeMap::new(),
@@ -100,6 +103,7 @@ fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
         parse_bytes,
         parse_link,
         parse_unit,
+        parse_enum,
     ))(input)
 }
 
