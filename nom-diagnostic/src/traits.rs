@@ -1,9 +1,10 @@
-use crate::InstrumentedStr;
+use crate::{ErrorDiagnose, InstrumentedStr};
 use nom::{
     error::{ErrorKind, ParseError},
     Compare, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
 };
 use std::{
+    error::Error as StdError,
     ops::{Range, RangeFrom, RangeFull, RangeTo},
     str::{CharIndices, Chars},
 };
@@ -54,7 +55,7 @@ impl<'a> InputLength for InstrumentedStr<'a> {
 impl<'a> InputTake for InstrumentedStr<'a> {
     fn take(&self, count: usize) -> Self {
         assert!(
-            self.input_len() <= count,
+            self.input_len() > count,
             "count must be larger than input_length"
         );
 
@@ -66,7 +67,7 @@ impl<'a> InputTake for InstrumentedStr<'a> {
 
     fn take_split(&self, count: usize) -> (Self, Self) {
         assert!(
-            self.input_len() <= count,
+            self.input_len() > count,
             "count must be larger than input_length"
         );
 
@@ -131,7 +132,7 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
             None => {
                 // Return right as simply an empty section at the end
                 let mut right = self.clone();
-                right.span_start = right.span_end;
+                right.span_start = self.span_end;
                 Ok((self.clone(), right))
             }
         }
@@ -211,3 +212,22 @@ impl<'a> Slice<RangeFull> for InstrumentedStr<'a> {
 
 // TODO: Implement find substring?
 // TODO: Implement find token?
+
+impl<'a, T> ParseError<InstrumentedStr<'a>> for ErrorDiagnose<'a, T>
+where
+    T: StdError + Default,
+{
+    fn from_error_kind(input: InstrumentedStr<'a>, _: ErrorKind) -> Self {
+        ErrorDiagnose {
+            src: input.src,
+            file: input.file,
+            span_start: input.span_start,
+            span_end: input.span_end,
+            error: T::default(),
+        }
+    }
+
+    fn append(_: InstrumentedStr<'a>, _: ErrorKind, other: Self) -> Self {
+        other
+    }
+}

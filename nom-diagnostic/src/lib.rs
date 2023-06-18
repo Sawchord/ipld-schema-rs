@@ -25,7 +25,7 @@ pub fn diagnose<'a, P, S, Po, So, E>(
 where
     P: Parser<InstrumentedStr<'a>, Po, NomError<InstrumentedStr<'a>>>,
     S: Parser<InstrumentedStr<'a>, So, NomError<InstrumentedStr<'a>>>,
-    E: StdError + Clone,
+    E: StdError + Default + Clone,
 {
     move |input: InstrumentedStr<'a>| match parser.parse(input.clone()) {
         Ok(output) => Ok(output),
@@ -87,7 +87,7 @@ impl<'a> InstrumentedStr<'a> {
     /// This function checks that there is no more
     pub fn finalize<T>(self, error: T) -> Result<(), ErrorDiagnose<'a, T>>
     where
-        T: StdError,
+        T: StdError + Default,
     {
         if self.span_start == self.span_end {
             Ok(())
@@ -106,7 +106,7 @@ impl<'a> InstrumentedStr<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorDiagnose<'a, T>
 where
-    T: StdError,
+    T: StdError + Default,
 {
     src: &'a str,
     file: Option<&'a str>,
@@ -117,7 +117,7 @@ where
 
 impl<'a, T> ErrorDiagnose<'a, T>
 where
-    T: StdError,
+    T: StdError + Default + Clone,
 {
     pub fn display(&self) {
         let mut files = SimpleFiles::new();
