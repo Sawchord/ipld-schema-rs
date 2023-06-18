@@ -1,5 +1,8 @@
 use nom::{
-    branch::alt, bytes::complete::tag, character::complete::alpha0, combinator::map,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{alpha0, digit0},
+    combinator::map,
     sequence::tuple,
 };
 use nom_diagnostic::{diagnose, ErrorDiagnose, InstrumentedStr, ParseResult};
@@ -40,11 +43,19 @@ impl Url {
 fn parse_protocol(input: InstrumentedStr) -> ParseResult<Protocol, UrlParseError> {
     diagnose(
         alt((
-            map(tag("http://"), |_: InstrumentedStr| Protocol::Http),
-            map(tag("https://"), |_: InstrumentedStr| Protocol::Https),
+            map(tag("http"), |_: InstrumentedStr| Protocol::Http),
+            map(tag("https"), |_: InstrumentedStr| Protocol::Https),
         )),
-        tuple((alpha0, tag("://"))),
+        alpha0,
         UrlParseError::InvalidProtocol,
+    )(input)
+}
+
+fn parse_port(input: InstrumentedStr) -> ParseResult<u16, UrlParseError> {
+    diagnose(
+        nom::character::complete::u16,
+        digit0,
+        UrlParseError::InvalidPort,
     )(input)
 }
 

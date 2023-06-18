@@ -1,9 +1,12 @@
 use crate::InstrumentedStr;
 use nom::{
     error::{ErrorKind, ParseError},
-    Compare, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
+    Compare, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
 };
-use std::str::{CharIndices, Chars};
+use std::{
+    ops::{Range, RangeFrom, RangeFull, RangeTo},
+    str::{CharIndices, Chars},
+};
 
 impl<'a> From<&'a str> for InstrumentedStr<'a> {
     fn from(value: &'a str) -> Self {
@@ -170,11 +173,39 @@ where
     S: Into<&'a str>,
 {
     fn compare(&self, t: S) -> nom::CompareResult {
-        todo!()
+        self.inner().compare(t.into())
     }
 
     fn compare_no_case(&self, t: S) -> nom::CompareResult {
-        todo!()
+        self.inner().compare_no_case(t.into())
+    }
+}
+
+impl<'a> Slice<Range<usize>> for InstrumentedStr<'a> {
+    fn slice(&self, range: Range<usize>) -> Self {
+        self.slice(..range.end).slice(range.start..)
+    }
+}
+
+impl<'a> Slice<RangeTo<usize>> for InstrumentedStr<'a> {
+    fn slice(&self, range: RangeTo<usize>) -> Self {
+        let mut ret = self.clone();
+        ret.span_end = std::cmp::min(ret.span_start + range.end, ret.span_end);
+        ret
+    }
+}
+
+impl<'a> Slice<RangeFrom<usize>> for InstrumentedStr<'a> {
+    fn slice(&self, range: RangeFrom<usize>) -> Self {
+        let mut ret = self.clone();
+        ret.span_start = std::cmp::min(ret.span_start + range.start, ret.span_end);
+        ret
+    }
+}
+
+impl<'a> Slice<RangeFull> for InstrumentedStr<'a> {
+    fn slice(&self, _: RangeFull) -> Self {
+        self.clone()
     }
 }
 
