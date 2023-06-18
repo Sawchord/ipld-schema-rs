@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod traits;
 use codespan_reporting::{
     diagnostic::{Diagnostic, Label},
@@ -25,8 +23,8 @@ pub fn diagnose<'a, P, S, Po, So, E>(
     error: E,
 ) -> impl FnOnce(InstrumentedStr<'a>) -> ParseResult<'a, Po, E>
 where
-    P: Parser<InstrumentedStr<'a>, Po, E>,
-    S: Parser<InstrumentedStr<'a>, So, E>,
+    P: Parser<InstrumentedStr<'a>, Po, NomError<InstrumentedStr<'a>>>,
+    S: Parser<InstrumentedStr<'a>, So, NomError<InstrumentedStr<'a>>>,
     E: StdError + Clone,
 {
     move |input: InstrumentedStr<'a>| match parser.parse(input.clone()) {
@@ -87,12 +85,12 @@ impl<'a> InstrumentedStr<'a> {
     /// Finalize the input processing
     ///
     /// This function checks that there is no more
-    pub fn finalize<T>(self, error: T) -> Result<&'a str, ErrorDiagnose<'a, T>>
+    pub fn finalize<T>(self, error: T) -> Result<(), ErrorDiagnose<'a, T>>
     where
         T: StdError,
     {
         if self.span_start == self.span_end {
-            Ok(self.inner())
+            Ok(())
         } else {
             Err(ErrorDiagnose {
                 src: self.src,

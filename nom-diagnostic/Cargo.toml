@@ -9,4 +9,10 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 nom = { version = "7.1.3" }
 codespan-reporting = { version = "0.11.1" }
-# thiserror = { version = "1.0.40" }
+
+[dev-dependencies]
+thiserror = { version = "1.0.40" }
+
+[[example]]
+name = "url"
+path = "examples/url.rs"

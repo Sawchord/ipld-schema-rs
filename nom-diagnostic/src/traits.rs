@@ -1,7 +1,7 @@
 use crate::InstrumentedStr;
 use nom::{
     error::{ErrorKind, ParseError},
-    InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
+    Compare, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
 };
 use std::str::{CharIndices, Chars};
 
@@ -162,6 +162,19 @@ impl<'a> Offset for InstrumentedStr<'a> {
         } else {
             self.span_start.saturating_sub(second.span_start)
         }
+    }
+}
+
+impl<'a, S> Compare<S> for InstrumentedStr<'a>
+where
+    S: Into<&'a str>,
+{
+    fn compare(&self, t: S) -> nom::CompareResult {
+        todo!()
+    }
+
+    fn compare_no_case(&self, t: S) -> nom::CompareResult {
+        todo!()
     }
 }
 
