@@ -131,10 +131,18 @@ enum EnumRepresentationTag {
 }
 
 fn parse_enum_representation_tag(input: &str) -> IResult<&str, EnumRepresentationTag> {
-    alt((
-        map(tag("int"), |_| EnumRepresentationTag::Int),
-        map(tag("string"), |_| EnumRepresentationTag::String),
-    ))(input)
+    map(
+        tuple((
+            space1,
+            tag("representation"),
+            space1,
+            alt((
+                map(tag("int"), |_| EnumRepresentationTag::Int),
+                map(tag("string"), |_| EnumRepresentationTag::String),
+            )),
+        )),
+        |(_, _, _, tag)| tag,
+    )(input)
 }
 
 fn parse_enum_member_name(input: &str) -> IResult<&str, &str> {
@@ -149,7 +157,7 @@ fn parse_enum_member_name(input: &str) -> IResult<&str, &str> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{representation::EnumRepresentation, EnumType, IpldSchema, IpldType};
+    use crate::{representation::EnumRepresentation, Doc, EnumType, IpldSchema, IpldType};
     use std::collections::BTreeMap;
 
     #[test]
@@ -160,10 +168,23 @@ mod tests {
         let mut expected_schema = IpldSchema(BTreeMap::new());
         expected_schema.0.insert(
             "StatusString".to_string(),
-            crate::Doc {
+            Doc {
                 doc: Some("Enum using string representation\n".to_string()),
                 ty: IpldType::Enum(EnumType {
-                    members: vec![],
+                    members: vec![
+                        Doc {
+                            doc: None,
+                            ty: "Nope".to_string(),
+                        },
+                        Doc {
+                            doc: None,
+                            ty: "Yep".to_string(),
+                        },
+                        Doc {
+                            doc: Some("This variant is selfdescribing\n".to_string()),
+                            ty: "Maybe".to_string(),
+                        },
+                    ],
                     representation: EnumRepresentation::String(vec![
                         "Nay".to_string(),
                         "Yay".to_string(),
@@ -172,7 +193,29 @@ mod tests {
                 }),
             },
         );
-        // TODO: Second structure is missing
+        expected_schema.0.insert(
+            "StatusInt".to_string(),
+            Doc {
+                doc: Some("Enum using integer representation\n".to_string()),
+                ty: IpldType::Enum(EnumType {
+                    members: vec![
+                        Doc {
+                            doc: None,
+                            ty: "Nope".to_string(),
+                        },
+                        Doc {
+                            doc: None,
+                            ty: "Yep".to_string(),
+                        },
+                        Doc {
+                            doc: None,
+                            ty: "Maybe".to_string(),
+                        },
+                    ],
+                    representation: EnumRepresentation::Int(vec![0, 1, 100]),
+                }),
+            },
+        );
 
         assert_eq!(parsed_schema, expected_schema);
     }
