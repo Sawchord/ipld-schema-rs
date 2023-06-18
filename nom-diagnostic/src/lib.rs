@@ -9,7 +9,7 @@ use codespan_reporting::{
         termcolor::{ColorChoice, StandardStream},
     },
 };
-use nom::error::Error as NomError;
+use nom::{error::Error as NomError, Parser};
 use std::error::Error as StdError;
 
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InstrumentedStr`].
@@ -19,7 +19,36 @@ pub type IResult<'a, T> = Result<(InstrumentedStr<'a>, T), NomError<Instrumented
 /// up in the chain.
 pub type ParseResult<'a, T, E> = Result<(InstrumentedStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
 
-// TODO: Diagnose function
+pub fn diagnose<'a, P, S, Po, So, E>(
+    mut parser: P,
+    mut span_parser: S,
+    error: E,
+) -> impl FnOnce(InstrumentedStr<'a>) -> ParseResult<'a, Po, E>
+where
+    P: Parser<InstrumentedStr<'a>, Po, E>,
+    S: Parser<InstrumentedStr<'a>, So, E>,
+    E: StdError + Clone,
+{
+    move |input: InstrumentedStr<'a>| match parser.parse(input.clone()) {
+        Ok(output) => Ok(output),
+        Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
+        Err(nom::Err::Error(_)) | Err(nom::Err::Failure(_)) => {
+            let end = span_parser
+                .parse(input.clone())
+                // TODO: Do something smarter than panicking
+                .expect("Span parser returned an error, this is a bug")
+                .0;
+
+            Err(nom::Err::Failure(ErrorDiagnose {
+                src: input.src,
+                file: input.file,
+                span_start: input.span_start,
+                span_end: end.span_start,
+                error,
+            }))
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct InstrumentedStr<'a> {

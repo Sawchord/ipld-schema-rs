@@ -1,7 +1,7 @@
 use crate::InstrumentedStr;
 use nom::{
     error::{ErrorKind, ParseError},
-    InputIter, InputLength, InputTake, InputTakeAtPosition,
+    InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
 };
 use std::str::{CharIndices, Chars};
 
@@ -151,6 +151,16 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
                 }
             }
             err => err,
+        }
+    }
+}
+
+impl<'a> Offset for InstrumentedStr<'a> {
+    fn offset(&self, second: &Self) -> usize {
+        if self.src != second.src {
+            usize::MAX
+        } else {
+            self.span_start.saturating_sub(second.span_start)
         }
     }
 }
