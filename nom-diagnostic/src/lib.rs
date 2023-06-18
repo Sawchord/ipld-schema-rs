@@ -9,7 +9,7 @@ pub type IResult<'a, T> = Result<(InstrumentedStr<'a>, T), NomError<Instrumented
 
 /// Final result type. If the parsing was not successful, we have an [`ErrorDiagnose`] which we want to pass
 /// up in the chain.
-pub type ParseResult<'a, T, E> = Result<(InstrumentedStr<'a>, T), nom::Err<ErrorDiagnose<E>>>;
+pub type ParseResult<'a, T, E> = Result<(InstrumentedStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
 
 // TODO: Diagnose function
 
@@ -47,14 +47,34 @@ impl<'a> InstrumentedStr<'a> {
         &self.src[self.span_start..self.span_end]
     }
 
-    // Finalize the input processing
-    //pub fn finalize(self)
+    /// Finalize the input processing
+    ///
+    /// This function checks that there is no more
+    pub fn finalize<T>(self, error: T) -> Result<&'a str, ErrorDiagnose<'a, T>>
+    where
+        T: StdError,
+    {
+        if self.span_start == self.span_end {
+            Ok(self.inner())
+        } else {
+            Err(ErrorDiagnose {
+                src: self.src,
+                file: self.file,
+                span_start: self.span_start,
+                span_end: self.span_end,
+                error,
+            })
+        }
+    }
 }
 
-pub struct ErrorDiagnose<T>
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorDiagnose<'a, T>
 where
     T: StdError,
 {
+    src: &'a str,
+    file: Option<&'a str>,
     span_start: usize,
     span_end: usize,
     error: T,
