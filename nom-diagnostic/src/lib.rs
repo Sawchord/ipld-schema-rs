@@ -43,7 +43,7 @@ impl<'a> InstrumentedStr<'a> {
     }
 
     /// Access the [`&str`] that this [`InstrumentedStr`] is pointing to
-    pub fn into_inner(&self) -> &str {
+    pub fn inner(&self) -> &'a str {
         &self.src[self.span_start..self.span_end]
     }
 
