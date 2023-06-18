@@ -1,6 +1,14 @@
 #![allow(dead_code)]
 
 mod traits;
+use codespan_reporting::{
+    diagnostic::{Diagnostic, Label},
+    files::SimpleFiles,
+    term::{
+        self,
+        termcolor::{ColorChoice, StandardStream},
+    },
+};
 use nom::error::Error as NomError;
 use std::error::Error as StdError;
 
@@ -80,4 +88,20 @@ where
     error: T,
 }
 
-// TODO: Implement Error Display
+impl<'a, T> ErrorDiagnose<'a, T>
+where
+    T: StdError,
+{
+    pub fn display(&self) {
+        let mut files = SimpleFiles::new();
+        let file = files.add(self.file.unwrap_or(""), self.src);
+
+        let diagnostic = Diagnostic::error()
+            .with_message(self.error.to_string())
+            .with_labels(vec![Label::primary(file, self.span_start..self.span_end)]);
+
+        let writer = StandardStream::stderr(ColorChoice::Always);
+        let config = codespan_reporting::term::Config::default();
+        term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
+    }
+}
