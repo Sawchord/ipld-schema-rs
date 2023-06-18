@@ -69,8 +69,8 @@ fn parse_url(input: InstrumentedStr) -> ParseResult<Url, UrlParseError> {
 fn parse_protocol(input: InstrumentedStr) -> ParseResult<Protocol, UrlParseError> {
     diagnose(
         alt((
-            map(tag("http"), |_: InstrumentedStr| Protocol::Http),
             map(tag("https"), |_: InstrumentedStr| Protocol::Https),
+            map(tag("http"), |_: InstrumentedStr| Protocol::Http),
         )),
         alpha0,
         UrlParseError::InvalidProtocol,

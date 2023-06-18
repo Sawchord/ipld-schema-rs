@@ -61,7 +61,7 @@ impl<'a> InputTake for InstrumentedStr<'a> {
 
         // We must move the span start forward
         let mut ret = self.clone();
-        ret.span_start += count;
+        ret.span_end = ret.span_start + count;
         ret
     }
 
@@ -71,13 +71,13 @@ impl<'a> InputTake for InstrumentedStr<'a> {
             "count must be larger than input_length"
         );
 
-        let mut left = self.clone();
-        let mut right = self.clone();
+        let mut prefix = self.clone();
+        let mut suffix = self.clone();
 
-        left.span_end = left.span_start + count;
-        right.span_start += count;
+        prefix.span_end = prefix.span_start + count;
+        suffix.span_start += count;
 
-        (left, right)
+        (suffix, prefix)
     }
 }
 
