@@ -7,7 +7,7 @@ use nom::{
     sequence::{terminated, tuple},
     Finish,
 };
-use nom_diagnostic::{diagnose, ErrorDiagnose, IResult, InstrumentedStr, ParseResult};
+use nom_diagnostic::{diagnose, ErrorDiagnose, IResult, InStr, ParseResult};
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -41,7 +41,7 @@ enum UrlParseError {
 
 impl Url {
     fn parse(input: &str) -> Result<Self, ErrorDiagnose<UrlParseError>> {
-        let input = InstrumentedStr::new(input);
+        let input = InStr::new(input);
         let (rest, url) = parse_url(input).finish()?;
         rest.finalize(UrlParseError::InvalidPort)?;
 
@@ -49,7 +49,7 @@ impl Url {
     }
 }
 
-fn parse_url(input: InstrumentedStr) -> ParseResult<Url, UrlParseError> {
+fn parse_url(input: InStr) -> ParseResult<Url, UrlParseError> {
     map(
         tuple((
             parse_protocol,
@@ -66,24 +66,24 @@ fn parse_url(input: InstrumentedStr) -> ParseResult<Url, UrlParseError> {
     )(input)
 }
 
-fn parse_protocol(input: InstrumentedStr) -> ParseResult<Protocol, UrlParseError> {
+fn parse_protocol(input: InStr) -> ParseResult<Protocol, UrlParseError> {
     diagnose(
         alt((
-            map(tag("https"), |_: InstrumentedStr| Protocol::Https),
-            map(tag("http"), |_: InstrumentedStr| Protocol::Http),
+            map(tag("https"), |_: InStr| Protocol::Https),
+            map(tag("http"), |_: InStr| Protocol::Http),
         )),
         alpha0,
         UrlParseError::InvalidProtocol,
     )(input)
 }
 
-fn parse_domain(input: InstrumentedStr) -> ParseResult<Domain, UrlParseError> {
+fn parse_domain(input: InStr) -> ParseResult<Domain, UrlParseError> {
     diagnose(
         map(
             fold_many1(
                 parse_domain_level,
                 Vec::new,
-                |mut segments, segment: InstrumentedStr| {
+                |mut segments, segment: InStr| {
                     segments.push(segment.inner().to_string());
                     segments
                 },
@@ -96,14 +96,14 @@ fn parse_domain(input: InstrumentedStr) -> ParseResult<Domain, UrlParseError> {
     )(input)
 }
 
-fn parse_domain_level(input: InstrumentedStr) -> IResult<InstrumentedStr> {
+fn parse_domain_level(input: InStr) -> IResult<InStr> {
     map(tuple((alphanumeric1, opt(tag(".")))), |(domain, x)| {
-        dbg!(&domain, x.map(|x: InstrumentedStr| x.inner()));
+        dbg!(&domain, x.map(|x: InStr| x.inner()));
         domain
     })(input)
 }
 
-fn parse_port(input: InstrumentedStr) -> ParseResult<u16, UrlParseError> {
+fn parse_port(input: InStr) -> ParseResult<u16, UrlParseError> {
     diagnose(
         nom::character::complete::u16,
         digit0,

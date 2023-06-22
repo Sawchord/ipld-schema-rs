@@ -10,24 +10,24 @@ use codespan_reporting::{
 use nom::{error::Error as NomError, Parser};
 use std::error::Error as StdError;
 
-/// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InstrumentedStr`].
-pub type IResult<'a, T> = Result<(InstrumentedStr<'a>, T), nom::Err<NomError<InstrumentedStr<'a>>>>;
+/// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InStr`].
+pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
 
 /// Final result type. If the parsing was not successful, we have an [`ErrorDiagnose`] which we want to pass
 /// up in the chain.
-pub type ParseResult<'a, T, E> = Result<(InstrumentedStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
+pub type ParseResult<'a, T, E> = Result<(InStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
 
 pub fn diagnose<'a, P, S, Po, So, E>(
     mut parser: P,
     mut span_parser: S,
     error: E,
-) -> impl FnOnce(InstrumentedStr<'a>) -> ParseResult<'a, Po, E>
+) -> impl FnOnce(InStr<'a>) -> ParseResult<'a, Po, E>
 where
-    P: Parser<InstrumentedStr<'a>, Po, NomError<InstrumentedStr<'a>>>,
-    S: Parser<InstrumentedStr<'a>, So, NomError<InstrumentedStr<'a>>>,
+    P: Parser<InStr<'a>, Po, NomError<InStr<'a>>>,
+    S: Parser<InStr<'a>, So, NomError<InStr<'a>>>,
     E: StdError + Default + Clone,
 {
-    move |input: InstrumentedStr<'a>| match parser.parse(input.clone()) {
+    move |input: InStr<'a>| match parser.parse(input.clone()) {
         Ok(output) => Ok(output),
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
         Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
@@ -42,24 +42,27 @@ where
             Err(nom::Err::Failure(ErrorDiagnose {
                 src: input.src,
                 file: input.file,
-                span_start: input.span_start,
-                span_end: end.span_start,
-                error,
+                errors: vec![ErrorSpan {
+                    start: input.span_start,
+                    end: end.span_start,
+                    error,
+                    hint: None,
+                }],
             }))
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct InstrumentedStr<'a> {
+pub struct InStr<'a> {
     src: &'a str,
     file: Option<&'a str>,
     span_start: usize,
     span_end: usize,
 }
 
-impl<'a> InstrumentedStr<'a> {
-    /// Create a new [`InstrumentedStr`] from a [`&str`]
+impl<'a> InStr<'a> {
+    /// Create a new [`InStr`] from a [`&str`]
     pub fn new(input: &'a str) -> Self {
         Self {
             src: input,
@@ -69,7 +72,7 @@ impl<'a> InstrumentedStr<'a> {
         }
     }
 
-    /// Create a new [`InstrumentedStr`] but provide a filename as well
+    /// Create a new [`InStr`] but provide a filename as well
     pub fn new_with_filename(input: &'a str, filename: &'a str) -> Self {
         Self {
             src: input,
@@ -79,7 +82,7 @@ impl<'a> InstrumentedStr<'a> {
         }
     }
 
-    /// Access the [`&str`] that this [`InstrumentedStr`] is pointing to
+    /// Access the [`&str`] that this [`InStr`] is pointing to
     pub fn inner(&self) -> &'a str {
         &self.src[self.span_start..self.span_end]
     }
@@ -97,9 +100,12 @@ impl<'a> InstrumentedStr<'a> {
             Err(ErrorDiagnose {
                 src: self.src,
                 file: self.file,
-                span_start: self.span_start,
-                span_end: self.span_end,
-                error,
+                errors: vec![ErrorSpan {
+                    start: self.span_start,
+                    end: self.span_end,
+                    error,
+                    hint: None,
+                }],
             })
         }
     }
@@ -112,11 +118,19 @@ where
 {
     src: &'a str,
     file: Option<&'a str>,
-    span_start: usize,
-    span_end: usize,
-    error: T,
+    errors: Vec<ErrorSpan<'a, T>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorSpan<'a, T>
+where
+    T: StdError + Default,
+{
+    start: usize,
+    end: usize,
+    error: T,
+    hint: Option<&'a str>,
+}
 impl<'a, T> ErrorDiagnose<'a, T>
 where
     T: StdError + Default + Clone,
@@ -125,12 +139,22 @@ where
         let mut files = SimpleFiles::new();
         let file = files.add(self.file.unwrap_or(""), self.src);
 
-        let diagnostic = Diagnostic::error()
-            .with_message(self.error.to_string())
-            .with_labels(vec![Label::primary(file, self.span_start..self.span_end)]);
-
         let writer = StandardStream::stderr(ColorChoice::Always);
         let config = codespan_reporting::term::Config::default();
-        term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
+
+        for error in self.errors.iter() {
+            let label = Label::primary(file, error.start..error.end);
+            let label = if let Some(hint) = error.hint {
+                label.with_message(hint)
+            } else {
+                label
+            };
+
+            let diagnostic = Diagnostic::error()
+                .with_message(error.error.to_string())
+                .with_labels(vec![label]);
+
+            term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
+        }
     }
 }

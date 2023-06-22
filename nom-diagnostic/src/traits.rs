@@ -1,4 +1,4 @@
-use crate::{ErrorDiagnose, InstrumentedStr};
+use crate::{ErrorDiagnose, ErrorSpan, InStr};
 use nom::{
     error::{ErrorKind, ParseError},
     Compare, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
@@ -9,19 +9,19 @@ use std::{
     str::{CharIndices, Chars},
 };
 
-impl<'a> From<&'a str> for InstrumentedStr<'a> {
+impl<'a> From<&'a str> for InStr<'a> {
     fn from(value: &'a str) -> Self {
         Self::new(value)
     }
 }
 
-impl<'a> From<InstrumentedStr<'a>> for &'a str {
-    fn from(value: InstrumentedStr<'a>) -> Self {
+impl<'a> From<InStr<'a>> for &'a str {
+    fn from(value: InStr<'a>) -> Self {
         value.inner()
     }
 }
 
-impl<'a> InputIter for InstrumentedStr<'a> {
+impl<'a> InputIter for InStr<'a> {
     type Item = char;
     type Iter = CharIndices<'a>;
     type IterElem = Chars<'a>;
@@ -46,13 +46,13 @@ impl<'a> InputIter for InstrumentedStr<'a> {
     }
 }
 
-impl<'a> InputLength for InstrumentedStr<'a> {
+impl<'a> InputLength for InStr<'a> {
     fn input_len(&self) -> usize {
         self.inner().len()
     }
 }
 
-impl<'a> InputTake for InstrumentedStr<'a> {
+impl<'a> InputTake for InStr<'a> {
     fn take(&self, count: usize) -> Self {
         assert!(
             self.input_len() > count,
@@ -81,7 +81,7 @@ impl<'a> InputTake for InstrumentedStr<'a> {
     }
 }
 
-impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
+impl<'a> InputTakeAtPosition for InStr<'a> {
     type Item = char;
 
     fn split_at_position<P, E: ParseError<Self>>(&self, predicate: P) -> nom::IResult<Self, Self, E>
@@ -159,7 +159,7 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
     }
 }
 
-impl<'a> Offset for InstrumentedStr<'a> {
+impl<'a> Offset for InStr<'a> {
     fn offset(&self, second: &Self) -> usize {
         if self.src != second.src {
             usize::MAX
@@ -169,7 +169,7 @@ impl<'a> Offset for InstrumentedStr<'a> {
     }
 }
 
-impl<'a, S> Compare<S> for InstrumentedStr<'a>
+impl<'a, S> Compare<S> for InStr<'a>
 where
     S: Into<&'a str>,
 {
@@ -182,13 +182,13 @@ where
     }
 }
 
-impl<'a> Slice<Range<usize>> for InstrumentedStr<'a> {
+impl<'a> Slice<Range<usize>> for InStr<'a> {
     fn slice(&self, range: Range<usize>) -> Self {
         self.slice(..range.end).slice(range.start..)
     }
 }
 
-impl<'a> Slice<RangeTo<usize>> for InstrumentedStr<'a> {
+impl<'a> Slice<RangeTo<usize>> for InStr<'a> {
     fn slice(&self, range: RangeTo<usize>) -> Self {
         let mut ret = self.clone();
         ret.span_end = std::cmp::min(ret.span_start + range.end, ret.span_end);
@@ -196,7 +196,7 @@ impl<'a> Slice<RangeTo<usize>> for InstrumentedStr<'a> {
     }
 }
 
-impl<'a> Slice<RangeFrom<usize>> for InstrumentedStr<'a> {
+impl<'a> Slice<RangeFrom<usize>> for InStr<'a> {
     fn slice(&self, range: RangeFrom<usize>) -> Self {
         let mut ret = self.clone();
         ret.span_start = std::cmp::min(ret.span_start + range.start, ret.span_end);
@@ -204,7 +204,7 @@ impl<'a> Slice<RangeFrom<usize>> for InstrumentedStr<'a> {
     }
 }
 
-impl<'a> Slice<RangeFull> for InstrumentedStr<'a> {
+impl<'a> Slice<RangeFull> for InStr<'a> {
     fn slice(&self, _: RangeFull) -> Self {
         self.clone()
     }
@@ -213,21 +213,34 @@ impl<'a> Slice<RangeFull> for InstrumentedStr<'a> {
 // TODO: Implement find substring?
 // TODO: Implement find token?
 
-impl<'a, T> ParseError<InstrumentedStr<'a>> for ErrorDiagnose<'a, T>
+impl<'a, T> ParseError<InStr<'a>> for ErrorDiagnose<'a, T>
 where
     T: StdError + Default,
 {
-    fn from_error_kind(input: InstrumentedStr<'a>, _: ErrorKind) -> Self {
+    fn from_error_kind(input: InStr<'a>, _: ErrorKind) -> Self {
         ErrorDiagnose {
             src: input.src,
             file: input.file,
-            span_start: input.span_start,
-            span_end: input.span_end,
-            error: T::default(),
+            errors: vec![ErrorSpan {
+                start: input.span_start,
+                end: input.span_end,
+                error: T::default(),
+                hint: None,
+            }],
         }
     }
 
-    fn append(_: InstrumentedStr<'a>, _: ErrorKind, other: Self) -> Self {
+    fn append(input: InStr<'a>, _: ErrorKind, mut other: Self) -> Self {
+        assert_eq!(input.src, other.src);
+        assert_eq!(input.file, other.file);
+
+        other.errors.push(ErrorSpan {
+            start: input.span_start,
+            end: input.span_end,
+            error: T::default(),
+            hint: None,
+        });
+
         other
     }
 }
