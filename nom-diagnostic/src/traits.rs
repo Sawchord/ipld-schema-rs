@@ -90,10 +90,10 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
     {
         match self.position(predicate) {
             Some(position) => {
-                let (left, right) = self.take_split(position);
-                Ok((left, right))
+                let (suffix, prefix) = self.take_split(position);
+                Ok((suffix, prefix))
             }
-            None => Err(nom::Err::Incomplete(nom::Needed::Unknown)),
+            None => Err(nom::Err::Incomplete(nom::Needed::new(1))),
         }
     }
 
@@ -106,11 +106,11 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
         P: Fn(Self::Item) -> bool,
     {
         match self.split_at_position(predicate) {
-            Ok((left, right)) => {
-                if left.input_len() == 0 {
+            Ok((suffix, prefix)) => {
+                if suffix.input_len() == 0 {
                     Err(nom::Err::Error(E::from_error_kind(self.clone(), e)))
                 } else {
-                    Ok((left, right))
+                    Ok((suffix, prefix))
                 }
             }
             err => err,
@@ -126,8 +126,8 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
     {
         match self.position(predicate) {
             Some(position) => {
-                let (left, right) = self.take_split(position);
-                Ok((left, right))
+                let (suffix, prefix) = self.take_split(position);
+                Ok((suffix, prefix))
             }
             None => {
                 // Return right as simply an empty section at the end
@@ -147,11 +147,11 @@ impl<'a> InputTakeAtPosition for InstrumentedStr<'a> {
         P: Fn(Self::Item) -> bool,
     {
         match self.split_at_position_complete(predicate) {
-            Ok((left, right)) => {
-                if left.input_len() == 0 {
+            Ok((suffix, prefix)) => {
+                if suffix.input_len() == 0 {
                     Err(nom::Err::Error(E::from_error_kind(self.clone(), e)))
                 } else {
-                    Ok((left, right))
+                    Ok((suffix, prefix))
                 }
             }
             err => err,

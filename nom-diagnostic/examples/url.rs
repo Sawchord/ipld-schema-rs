@@ -1,13 +1,13 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha0, alphanumeric0, digit0},
+    character::complete::{alpha0, alphanumeric0, alphanumeric1, digit0},
     combinator::{map, opt},
-    multi::{fold_many1, many0},
-    sequence::tuple,
+    multi::{fold_many1, many0, many1},
+    sequence::{terminated, tuple},
     Finish,
 };
-use nom_diagnostic::{diagnose, ErrorDiagnose, InstrumentedStr, ParseResult};
+use nom_diagnostic::{diagnose, ErrorDiagnose, IResult, InstrumentedStr, ParseResult};
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -81,22 +81,26 @@ fn parse_domain(input: InstrumentedStr) -> ParseResult<Domain, UrlParseError> {
     diagnose(
         map(
             fold_many1(
-                alt((alphanumeric0, tag("."))),
+                parse_domain_level,
                 Vec::new,
                 |mut segments, segment: InstrumentedStr| {
-                    if segment.inner() == "." {
-                        segments
-                    } else {
-                        segments.push(segment.inner().to_string());
-                        segments
-                    }
+                    segments.push(segment.inner().to_string());
+                    segments
                 },
             ),
             |vec| Domain(vec),
         ),
-        many0(alt((alphanumeric0, tag(".")))),
+        //many1(alt((tag("."), alphanumeric1))),
+        alphanumeric0,
         UrlParseError::InvalidDomain,
     )(input)
+}
+
+fn parse_domain_level(input: InstrumentedStr) -> IResult<InstrumentedStr> {
+    map(tuple((alphanumeric1, opt(tag(".")))), |(domain, x)| {
+        dbg!(&domain, x.map(|x: InstrumentedStr| x.inner()));
+        domain
+    })(input)
 }
 
 fn parse_port(input: InstrumentedStr) -> ParseResult<u16, UrlParseError> {
@@ -108,7 +112,7 @@ fn parse_port(input: InstrumentedStr) -> ParseResult<u16, UrlParseError> {
 }
 
 fn main() {
-    match Url::parse("https://test.example.com") {
+    match Url::parse("https://test.example.com:8080") {
         Ok(url) => println!("{:?}", url),
         Err(err) => err.display(),
     }

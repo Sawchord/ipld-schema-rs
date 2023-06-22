@@ -11,7 +11,7 @@ use nom::{error::Error as NomError, Parser};
 use std::error::Error as StdError;
 
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InstrumentedStr`].
-pub type IResult<'a, T> = Result<(InstrumentedStr<'a>, T), NomError<InstrumentedStr<'a>>>;
+pub type IResult<'a, T> = Result<(InstrumentedStr<'a>, T), nom::Err<NomError<InstrumentedStr<'a>>>>;
 
 /// Final result type. If the parsing was not successful, we have an [`ErrorDiagnose`] which we want to pass
 /// up in the chain.
@@ -30,7 +30,9 @@ where
     move |input: InstrumentedStr<'a>| match parser.parse(input.clone()) {
         Ok(output) => Ok(output),
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
-        Err(nom::Err::Error(_)) | Err(nom::Err::Failure(_)) => {
+        Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
+            dbg!(err);
+
             let end = span_parser
                 .parse(input.clone())
                 // TODO: Do something smarter than panicking
