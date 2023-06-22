@@ -7,7 +7,7 @@ use codespan_reporting::{
         termcolor::{ColorChoice, StandardStream},
     },
 };
-use nom::{error::Error as NomError, Parser};
+use nom::{error::Error as NomError, InputTakeAtPosition, Parser};
 use std::error::Error as StdError;
 
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InStr`].
@@ -17,37 +17,32 @@ pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
 /// up in the chain.
 pub type ParseResult<'a, T, E> = Result<(InStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
 
-pub fn diagnose<'a, P, S, Po, So, E>(
+pub fn diagnose<'a, P, S, Po, E>(
     mut parser: P,
-    mut span_parser: S,
-    error: E,
+    span_parser: S,
 ) -> impl FnOnce(InStr<'a>) -> ParseResult<'a, Po, E>
 where
     P: Parser<InStr<'a>, Po, NomError<InStr<'a>>>,
-    S: Parser<InStr<'a>, So, NomError<InStr<'a>>>,
+    S: Fn(NomError<InStr<'a>>) -> Vec<ErrorSpan<'a, E>>,
     E: StdError + Default + Clone,
 {
     move |input: InStr<'a>| match parser.parse(input.clone()) {
         Ok(output) => Ok(output),
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
-        Err(nom::Err::Error(err)) | Err(nom::Err::Failure(err)) => {
-            dbg!(err);
-
-            let end = span_parser
-                .parse(input.clone())
-                // TODO: Do something smarter than panicking
-                .expect("Span parser returned an error, this is a bug")
-                .0;
-
+        Err(nom::Err::Error(err)) => {
+            let errors = span_parser(err);
+            Err(nom::Err::Error(ErrorDiagnose {
+                src: input.src,
+                file: input.file,
+                errors,
+            }))
+        }
+        Err(nom::Err::Failure(err)) => {
+            let errors = span_parser(err);
             Err(nom::Err::Failure(ErrorDiagnose {
                 src: input.src,
                 file: input.file,
-                errors: vec![ErrorSpan {
-                    start: input.span_start,
-                    end: end.span_start,
-                    error,
-                    hint: None,
-                }],
+                errors,
             }))
         }
     }
@@ -85,6 +80,24 @@ impl<'a> InStr<'a> {
     /// Access the [`&str`] that this [`InStr`] is pointing to
     pub fn inner(&self) -> &'a str {
         &self.src[self.span_start..self.span_end]
+    }
+
+    pub fn to_span<P, E>(&self, predicate: P, error: E, hint: &'a str) -> ErrorSpan<'a, E>
+    where
+        P: Fn(char) -> bool,
+        E: StdError + Default,
+    {
+        let span: InStr<'a> = self
+            .split_at_position_complete::<_, ()>(predicate)
+            .map(|(_, prefix)| prefix)
+            .unwrap_or_else(|_| self.clone());
+
+        ErrorSpan {
+            start: span.span_start,
+            end: span.span_end,
+            error,
+            hint: Some(hint),
+        }
     }
 
     /// Finalize the input processing

@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha0, alphanumeric0, alphanumeric1, digit0},
+    character::complete::alphanumeric1,
     combinator::{map, opt},
-    multi::{fold_many1, many0, many1},
-    sequence::{terminated, tuple},
+    multi::fold_many1,
+    sequence::tuple,
     Finish,
 };
 use nom_diagnostic::{diagnose, ErrorDiagnose, IResult, InStr, ParseResult};
@@ -20,6 +20,7 @@ enum Protocol {
 struct Domain(Vec<String>);
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct Url {
     protocol: Protocol,
     domain: Domain,
@@ -72,8 +73,13 @@ fn parse_protocol(input: InStr) -> ParseResult<Protocol, UrlParseError> {
             map(tag("https"), |_: InStr| Protocol::Https),
             map(tag("http"), |_: InStr| Protocol::Http),
         )),
-        alpha0,
-        UrlParseError::InvalidProtocol,
+        |error| {
+            vec![error.input.to_span(
+                |c| !c.is_alphanumeric(),
+                UrlParseError::InvalidProtocol,
+                "this must be either \"http\" or \"https\"",
+            )]
+        },
     )(input)
 }
 
@@ -90,29 +96,52 @@ fn parse_domain(input: InStr) -> ParseResult<Domain, UrlParseError> {
             ),
             |vec| Domain(vec),
         ),
-        //many1(alt((tag("."), alphanumeric1))),
-        alphanumeric0,
-        UrlParseError::InvalidDomain,
+        |error| {
+            vec![error.input.to_span(
+                |c| !c.is_alphanumeric(),
+                UrlParseError::InvalidDomain,
+                "domain must contain at least two segments, i.e. \"example.com\"",
+            )]
+        },
     )(input)
 }
 
 fn parse_domain_level(input: InStr) -> IResult<InStr> {
-    map(tuple((alphanumeric1, opt(tag(".")))), |(domain, x)| {
-        dbg!(&domain, x.map(|x: InStr| x.inner()));
-        domain
-    })(input)
+    map(tuple((alphanumeric1, opt(tag(".")))), |(domain, _)| domain)(input)
 }
 
 fn parse_port(input: InStr) -> ParseResult<u16, UrlParseError> {
-    diagnose(
-        nom::character::complete::u16,
-        digit0,
-        UrlParseError::InvalidPort,
-    )(input)
+    diagnose(nom::character::complete::u16, |error| {
+        vec![error.input.to_span(
+            |c| true,
+            UrlParseError::InvalidPort,
+            "port number can only be a decimal number between 1 and 65536",
+        )]
+    })(input)
 }
 
 fn main() {
     match Url::parse("https://test.example.com:8080") {
+        Ok(url) => println!("{:?}", url),
+        Err(err) => err.display(),
+    }
+
+    match Url::parse("htt://test.example.com:8080") {
+        Ok(url) => println!("{:?}", url),
+        Err(err) => err.display(),
+    }
+
+    match Url::parse("http://com:8080") {
+        Ok(url) => println!("{:?}", url),
+        Err(err) => err.display(),
+    }
+
+    match Url::parse("http://test.example.com:lol") {
+        Ok(url) => println!("{:?}", url),
+        Err(err) => err.display(),
+    }
+
+    match Url::parse("http://:8080") {
         Ok(url) => println!("{:?}", url),
         Err(err) => err.display(),
     }

@@ -107,7 +107,7 @@ impl<'a> InputTakeAtPosition for InStr<'a> {
     {
         match self.split_at_position(predicate) {
             Ok((suffix, prefix)) => {
-                if suffix.input_len() == 0 {
+                if prefix.input_len() == 0 {
                     Err(nom::Err::Error(E::from_error_kind(self.clone(), e)))
                 } else {
                     Ok((suffix, prefix))
@@ -148,7 +148,7 @@ impl<'a> InputTakeAtPosition for InStr<'a> {
     {
         match self.split_at_position_complete(predicate) {
             Ok((suffix, prefix)) => {
-                if suffix.input_len() == 0 {
+                if prefix.input_len() == 0 {
                     Err(nom::Err::Error(E::from_error_kind(self.clone(), e)))
                 } else {
                     Ok((suffix, prefix))
