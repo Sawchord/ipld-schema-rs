@@ -1,4 +1,4 @@
-use crate::{ErrorDiagnose, ErrorSpan, InStr};
+use crate::{ErrorDiagnose, InStr, Span};
 use nom::{
     error::{ErrorKind, ParseError},
     Compare, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
@@ -221,10 +221,10 @@ where
         ErrorDiagnose {
             src: input.src,
             file: input.file,
-            errors: vec![ErrorSpan {
+            errors: vec![Span {
                 start: input.span_start,
                 end: input.span_end,
-                error: T::default(),
+                inner: T::default(),
                 hint: None,
             }],
         }
@@ -234,10 +234,10 @@ where
         assert_eq!(input.src, other.src);
         assert_eq!(input.file, other.file);
 
-        other.errors.push(ErrorSpan {
+        other.errors.push(Span {
             start: input.span_start,
             end: input.span_end,
-            error: T::default(),
+            inner: T::default(),
             hint: None,
         });
 

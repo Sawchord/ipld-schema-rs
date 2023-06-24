@@ -44,7 +44,10 @@ impl Url {
     fn parse(input: &str) -> Result<Self, ErrorDiagnose<UrlParseError>> {
         let input = InStr::new(input);
         let (rest, url) = parse_url(input).finish()?;
-        rest.finalize(UrlParseError::InvalidPort)?;
+        rest.finalize(
+            UrlParseError::InvalidPort,
+            "port number can only be a decimal number between 1 and 65536",
+        )?;
 
         Ok(url)
     }
@@ -52,14 +55,8 @@ impl Url {
 
 fn parse_url(input: InStr) -> ParseResult<Url, UrlParseError> {
     map(
-        tuple((
-            parse_protocol,
-            tag("://"),
-            parse_domain,
-            tag(":"),
-            opt(parse_port),
-        )),
-        |(protocol, _, domain, _, port)| Url {
+        tuple((parse_protocol, tag("://"), parse_domain, opt(parse_port))),
+        |(protocol, _, domain, port)| Url {
             protocol,
             domain,
             port,
@@ -90,6 +87,7 @@ fn parse_domain(input: InStr) -> ParseResult<Domain, UrlParseError> {
                 parse_domain_level,
                 Vec::new,
                 |mut segments, segment: InStr| {
+                    dbg!(&segment.inner());
                     segments.push(segment.inner().to_string());
                     segments
                 },
@@ -111,17 +109,14 @@ fn parse_domain_level(input: InStr) -> IResult<InStr> {
 }
 
 fn parse_port(input: InStr) -> ParseResult<u16, UrlParseError> {
-    diagnose(nom::character::complete::u16, |error| {
-        vec![error.input.to_span(
-            |c| true,
-            UrlParseError::InvalidPort,
-            "port number can only be a decimal number between 1 and 65536",
-        )]
-    })(input)
+    map(
+        tuple((tag(":"), nom::character::complete::u16)),
+        |(_, port)| port,
+    )(input)
 }
 
 fn main() {
-    match Url::parse("https://test.example.com:8080") {
+    match Url::parse("https://test.example.com") {
         Ok(url) => println!("{:?}", url),
         Err(err) => err.display(),
     }
