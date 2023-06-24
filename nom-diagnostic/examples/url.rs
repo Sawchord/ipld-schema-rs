@@ -71,11 +71,10 @@ fn parse_protocol(input: InStr) -> ParseResult<Protocol, UrlParseError> {
             map(tag("http"), |_: InStr| Protocol::Http),
         )),
         |error| {
-            vec![error.input.to_span(
-                |c| !c.is_alphanumeric(),
-                UrlParseError::InvalidProtocol,
-                "this must be either \"http\" or \"https\"",
-            )]
+            vec![error
+                .input
+                .to_span(|c| !c.is_alphanumeric(), UrlParseError::InvalidProtocol)
+                .with_hint("this must be either \"http\" or \"https\"")]
         },
     )(input)
 }
@@ -95,11 +94,10 @@ fn parse_domain(input: InStr) -> ParseResult<Domain, UrlParseError> {
             |vec| Domain(vec),
         ),
         |error| {
-            vec![error.input.to_span(
-                |c| !c.is_alphanumeric(),
-                UrlParseError::InvalidDomain,
-                "domain must contain at least two segments, i.e. \"example.com\"",
-            )]
+            vec![error
+                .input
+                .to_span(|c| !c.is_alphanumeric(), UrlParseError::InvalidDomain)
+                .with_hint("domain must contain at least two segments, i.e. \"example.com\"")]
         },
     )(input)
 }

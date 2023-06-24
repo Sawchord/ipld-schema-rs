@@ -82,7 +82,7 @@ impl<'a> InStr<'a> {
         &self.src[self.span_start..self.span_end]
     }
 
-    pub fn to_span<P, E>(&self, predicate: P, inner: E, hint: &'a str) -> Span<'a, E>
+    pub fn to_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
     where
         P: Fn(char) -> bool,
         E: StdError + Default,
@@ -96,7 +96,7 @@ impl<'a> InStr<'a> {
             start: span.span_start,
             end: span.span_end,
             inner,
-            hint: Some(hint),
+            hint: None,
         }
     }
 
@@ -134,13 +134,6 @@ where
     errors: Vec<Span<'a, T>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Span<'a, T> {
-    start: usize,
-    end: usize,
-    inner: T,
-    hint: Option<&'a str>,
-}
 impl<'a, T> ErrorDiagnose<'a, T>
 where
     T: StdError + Default + Clone,
@@ -166,5 +159,24 @@ where
 
             term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Span<'a, T> {
+    start: usize,
+    end: usize,
+    inner: T,
+    hint: Option<&'a str>,
+}
+
+impl<'a, T> Span<'a, T> {
+    pub fn with_hint(mut self, hint: &'a str) -> Self {
+        self.hint = Some(hint);
+        self
+    }
+
+    pub fn into_inner(self) -> T {
+        self.inner
     }
 }
