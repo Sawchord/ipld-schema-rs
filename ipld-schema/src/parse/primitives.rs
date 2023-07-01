@@ -8,39 +8,39 @@ use nom::{
     character::complete::{space0, space1},
     combinator::{map, opt},
     sequence::tuple,
-    IResult,
 };
+use nom_diagnostic::{IResult, InStr};
 
 use super::parse_type_name;
 
-pub(crate) fn parse_bool(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_bool(input: InStr) -> IResult<IpldType> {
     map(tag("bool"), |_| IpldType::Bool)(input)
 }
 
-pub(crate) fn parse_string(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_string(input: InStr) -> IResult<IpldType> {
     map(tag("string"), |_| IpldType::String)(input)
 }
 
-pub(crate) fn parse_int(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_int(input: InStr) -> IResult<IpldType> {
     map(tag("int"), |_| IpldType::Int)(input)
 }
 
-pub(crate) fn parse_float(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_float(input: InStr) -> IResult<IpldType> {
     map(tag("float"), |_| IpldType::Float)(input)
 }
 
-pub(crate) fn parse_any(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_any(input: InStr) -> IResult<IpldType> {
     map(tag("any"), |_| IpldType::Any)(input)
 }
 
-pub(crate) fn parse_bytes(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_bytes(input: InStr) -> IResult<IpldType> {
     map(
         tuple((tag("bytes"), opt(parse_bytes_representation))),
         |(_, repr)| IpldType::Bytes(repr.unwrap_or(BytesRepresentation::Bytes)),
     )(input)
 }
 
-fn parse_bytes_representation(input: &str) -> IResult<&str, BytesRepresentation> {
+fn parse_bytes_representation(input: InStr) -> IResult<BytesRepresentation> {
     map(
         tuple((
             space1,
@@ -57,21 +57,21 @@ fn parse_bytes_representation(input: &str) -> IResult<&str, BytesRepresentation>
     )(input)
 }
 
-pub(crate) fn parse_link(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_link(input: InStr) -> IResult<IpldType> {
     map(
         tuple((tag("&"), space0, parse_type_name)),
         |(_, _, link)| IpldType::Link(link.to_string()),
     )(input)
 }
 
-pub(crate) fn parse_unit(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_unit(input: InStr) -> IResult<IpldType> {
     map(
         tuple((tag("unit"), parse_unit_representation)),
         |(_, repr)| IpldType::Unit(repr),
     )(input)
 }
 
-fn parse_unit_representation(input: &str) -> IResult<&str, UnitRepresentation> {
+fn parse_unit_representation(input: InStr) -> IResult<UnitRepresentation> {
     map(
         tuple((
             space1,
@@ -88,7 +88,7 @@ fn parse_unit_representation(input: &str) -> IResult<&str, UnitRepresentation> {
     )(input)
 }
 
-fn parse_advanced(input: &str) -> IResult<&str, &str> {
+fn parse_advanced(input: InStr) -> IResult<InStr> {
     map(
         tuple((tag("advanced"), space1, parse_type_name)),
         |(_, _, name)| name,
@@ -113,7 +113,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_type_declaration(uncommented_bool).unwrap().1,
+            parse_type_declaration(uncommented_bool.into()).unwrap().1,
             expected_result
         );
     }
@@ -138,7 +138,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_type_declaration(commented_any).unwrap().1,
+            parse_type_declaration(commented_any.into()).unwrap().1,
             expected_result
         );
     }
@@ -160,7 +160,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_type_declaration(advanced_bytes).unwrap().1,
+            parse_type_declaration(advanced_bytes.into()).unwrap().1,
             expected_result
         );
     }
@@ -175,7 +175,10 @@ mod tests {
                 ty: IpldType::Link("Data".to_string()),
             },
         );
-        assert_eq!(parse_type_declaration(link).unwrap().1, expected_result);
+        assert_eq!(
+            parse_type_declaration(link.into()).unwrap().1,
+            expected_result
+        );
     }
 
     #[test]
@@ -188,6 +191,9 @@ mod tests {
                 ty: IpldType::Unit(UnitRepresentation::True),
             },
         );
-        assert_eq!(parse_type_declaration(unit).unwrap().1, expexted_result);
+        assert_eq!(
+            parse_type_declaration(unit.into()).unwrap().1,
+            expexted_result
+        );
     }
 }

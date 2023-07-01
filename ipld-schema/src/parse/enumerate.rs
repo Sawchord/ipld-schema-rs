@@ -8,10 +8,11 @@ use nom::{
     error::{make_error, Error, ErrorKind},
     multi::many1,
     sequence::tuple,
-    AsChar, IResult,
+    AsChar,
 };
+use nom_diagnostic::{IResult, InStr};
 
-pub(crate) fn parse_enum(input: &str) -> IResult<&str, IpldType> {
+pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
     map_res(
         tuple((
             tag("enum"),
@@ -70,11 +71,11 @@ pub(crate) fn parse_enum(input: &str) -> IResult<&str, IpldType> {
     )(input)
 }
 
-fn parse_enum_members(input: &str) -> IResult<&str, Vec<(Option<String>, String, EnumMemberTag)>> {
+fn parse_enum_members(input: InStr) -> IResult<Vec<(Option<String>, String, EnumMemberTag)>> {
     many1(parse_enum_member)(input)
 }
 
-fn parse_enum_member(input: &str) -> IResult<&str, (Option<String>, String, EnumMemberTag)> {
+fn parse_enum_member(input: InStr) -> IResult<(Option<String>, String, EnumMemberTag)> {
     map(
         tuple((
             opt(parse_comment_block),
@@ -100,7 +101,7 @@ enum EnumMemberTag {
     String(String),
 }
 
-fn parse_enum_member_tag(input: &str) -> IResult<&str, EnumMemberTag> {
+fn parse_enum_member_tag(input: InStr) -> IResult<EnumMemberTag> {
     map(
         tuple((
             space1,
@@ -130,7 +131,7 @@ enum EnumRepresentationTag {
     String,
 }
 
-fn parse_enum_representation_tag(input: &str) -> IResult<&str, EnumRepresentationTag> {
+fn parse_enum_representation_tag(input: InStr) -> IResult<EnumRepresentationTag> {
     map(
         tuple((
             space1,
@@ -145,7 +146,7 @@ fn parse_enum_representation_tag(input: &str) -> IResult<&str, EnumRepresentatio
     )(input)
 }
 
-fn parse_enum_member_name(input: &str) -> IResult<&str, &str> {
+fn parse_enum_member_name(input: InStr) -> IResult<InStr> {
     map(
         tuple((
             peek(take_while1(|c: char| c.is_alpha())),

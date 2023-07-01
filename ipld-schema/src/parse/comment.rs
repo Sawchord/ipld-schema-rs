@@ -4,11 +4,11 @@ use nom::{
     combinator::{map, opt},
     multi::many1,
     sequence::tuple,
-    IResult,
 };
+use nom_diagnostic::{IResult, InStr};
 
 /// Parses a single line of comments that begins with `##` and ends with a newline
-fn parse_comment_line(input: &str) -> IResult<&str, &str> {
+fn parse_comment_line(input: InStr) -> IResult<InStr> {
     map(
         tuple((space0, tag("#"), space0, not_line_ending, line_ending)),
         |(_, _, _, data, _)| data,
@@ -16,13 +16,13 @@ fn parse_comment_line(input: &str) -> IResult<&str, &str> {
 }
 
 /// Parses a comment block. Each line has to be either a comment or an empty line
-pub(crate) fn parse_comment_block(input: &str) -> IResult<&str, String> {
+pub(crate) fn parse_comment_block(input: InStr) -> IResult<String> {
     map(
         many1(tuple((parse_comment_line, opt(multispace0)))),
         |lines| {
             lines
                 .into_iter()
-                .map(|(line, _)| String::from(line))
+                .map(|(line, _)| line.to_string())
                 .fold(String::new(), |a, b| a + &b + "\n")
         },
     )(input)
@@ -34,8 +34,8 @@ mod tests {
 
     #[test]
     fn test_parse_comment_line() {
-        let comment = "    # This is a comment line\n";
-        let not_comment = "This is not a comment";
+        let comment = "    # This is a comment line\n".into();
+        let not_comment = "This is not a comment".into();
 
         assert!(parse_comment_line(comment).is_ok());
         assert!(parse_comment_line(not_comment).is_err());
@@ -49,7 +49,8 @@ mod tests {
                \n\
             # Empty lines are not a problem for it\n\
             This is no longer a comment\n\
-        ";
+        "
+        .into();
 
         let parsed_comment = "\
             This is a comment block\n\

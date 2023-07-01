@@ -124,6 +124,12 @@ impl<'a> InStr<'a> {
     }
 }
 
+impl<'a> ToString for InStr<'a> {
+    fn to_string(&self) -> String {
+        self.inner().to_string()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorDiagnose<'a, T>
 where

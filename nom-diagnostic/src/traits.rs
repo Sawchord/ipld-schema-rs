@@ -67,7 +67,7 @@ impl<'a> InputTake for InStr<'a> {
 
     fn take_split(&self, count: usize) -> (Self, Self) {
         assert!(
-            self.input_len() > count,
+            self.input_len() >= count,
             "count must be larger than input_length"
         );
 
@@ -169,18 +169,18 @@ impl<'a> Offset for InStr<'a> {
     }
 }
 
-impl<'a, S> Compare<S> for InStr<'a>
-where
-    S: Into<&'a str>,
-{
-    fn compare(&self, t: S) -> nom::CompareResult {
-        self.inner().compare(t.into())
-    }
+// impl<'a, 'b, S> Compare<S> for InStr<'a>
+// where
+//     S: Into<&'b str>,
+// {
+//     fn compare(&self, t: S) -> nom::CompareResult {
+//         self.inner().compare(t.into())
+//     }
 
-    fn compare_no_case(&self, t: S) -> nom::CompareResult {
-        self.inner().compare_no_case(t.into())
-    }
-}
+//     fn compare_no_case(&self, t: S) -> nom::CompareResult {
+//         self.inner().compare_no_case(t.into())
+//     }
+// }
 
 impl<'a> Slice<Range<usize>> for InStr<'a> {
     fn slice(&self, range: Range<usize>) -> Self {
@@ -242,5 +242,25 @@ where
         });
 
         other
+    }
+}
+
+impl<'a, 'b> Compare<&'b str> for InStr<'a> {
+    fn compare(&self, t: &'b str) -> nom::CompareResult {
+        self.inner().compare(t)
+    }
+
+    fn compare_no_case(&self, t: &'b str) -> nom::CompareResult {
+        self.inner().compare_no_case(t)
+    }
+}
+
+impl<'a, 'b> Compare<&'b [u8]> for InStr<'a> {
+    fn compare(&self, t: &'b [u8]) -> nom::CompareResult {
+        self.inner().compare(t)
+    }
+
+    fn compare_no_case(&self, t: &'b [u8]) -> nom::CompareResult {
+        self.inner().compare_no_case(t)
     }
 }

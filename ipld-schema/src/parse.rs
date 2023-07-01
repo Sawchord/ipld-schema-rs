@@ -18,8 +18,9 @@ use nom::{
     combinator::{map, opt, peek},
     multi::fold_many0,
     sequence::tuple,
-    AsChar, Finish, IResult,
+    AsChar, Finish,
 };
+use nom_diagnostic::{IResult, InStr};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -33,14 +34,15 @@ pub enum IpldSchemaParseError {
 
 impl IpldSchema {
     pub fn parse(input: impl AsRef<str>) -> Result<Self, IpldSchemaParseError> {
-        parse_schema(input.as_ref())
+        let input = InStr::new(input.as_ref());
+        parse_schema(input)
             .finish()
             .map(|(_, schema)| IpldSchema(schema))
             .map_err(|_| IpldSchemaParseError::Generic)
     }
 }
 
-fn parse_schema(input: &str) -> IResult<&str, BTreeMap<String, Doc<IpldType>>> {
+fn parse_schema(input: InStr) -> IResult<BTreeMap<String, Doc<IpldType>>> {
     // TODO: Handle name duplication
     // TODO: How to handle non empty input
     fold_many0(
@@ -54,7 +56,7 @@ fn parse_schema(input: &str) -> IResult<&str, BTreeMap<String, Doc<IpldType>>> {
 }
 
 /// Parses a complete type declaration, i.e. the type name and the type definiton
-fn parse_type_declaration(input: &str) -> IResult<&str, (String, Doc<IpldType>)> {
+fn parse_type_declaration(input: InStr) -> IResult<(String, Doc<IpldType>)> {
     map(
         tuple((
             opt(parse_comment_block),
@@ -68,7 +70,7 @@ fn parse_type_declaration(input: &str) -> IResult<&str, (String, Doc<IpldType>)>
         )),
         |parsed| {
             (
-                String::from(parsed.4),
+                parsed.4.to_string(),
                 Doc {
                     doc: parsed.0,
                     ty: parsed.6,
@@ -82,7 +84,7 @@ fn parse_type_declaration(input: &str) -> IResult<&str, (String, Doc<IpldType>)>
 ///
 /// - First character is a capital letter
 /// - Rest of the characters are alphanumerical or underscore
-fn parse_type_name(input: &str) -> IResult<&str, &str> {
+fn parse_type_name(input: InStr) -> IResult<InStr> {
     map(
         tuple((
             peek(take_while1(|c: char| c.is_alpha() && c.is_uppercase())),
@@ -93,7 +95,7 @@ fn parse_type_name(input: &str) -> IResult<&str, &str> {
 }
 
 /// Parses the type definition
-fn parse_type_definition(input: &str) -> IResult<&str, IpldType> {
+fn parse_type_definition(input: InStr) -> IResult<IpldType> {
     alt((
         parse_bool,
         parse_string,
@@ -113,13 +115,13 @@ mod tests {
 
     #[test]
     fn test_parse_type_name() {
-        let test1 = "TypeName";
-        let test2 = "Also_a_typename1232";
-        let test3 = "_not_a_type_name";
-        let test4 = "0notatypename";
-        let test5 = "nottypenameeither";
+        let test1 = "TypeName".into();
+        let test2 = "Also_a_typename1232".into();
+        let test3 = "_not_a_type_name".into();
+        let test4 = "0notatypename".into();
+        let test5 = "nottypenameeither".into();
 
-        assert_eq!(parse_type_name(test1).unwrap().1, "TypeName");
+        assert_eq!(parse_type_name(test1).unwrap().1.inner(), "TypeName");
         assert!(parse_type_name(test2).is_ok());
         assert!(parse_type_name(test3).is_err());
         assert!(parse_type_name(test4).is_err());
