@@ -5,7 +5,9 @@ use nom::{
     multi::many1,
     sequence::tuple,
 };
-use nom_diagnostic::{IResult, InStr};
+use nom_diagnostic::{diagnose, IResult, InStr, ParseResult};
+
+use super::IpldSchemaParseError;
 
 /// Parses a single line of comments that begins with `##` and ends with a newline
 fn parse_comment_line(input: InStr) -> IResult<InStr> {
@@ -16,14 +18,21 @@ fn parse_comment_line(input: InStr) -> IResult<InStr> {
 }
 
 /// Parses a comment block. Each line has to be either a comment or an empty line
-pub(crate) fn parse_comment_block(input: InStr) -> IResult<String> {
-    map(
-        many1(tuple((parse_comment_line, opt(multispace0)))),
-        |lines| {
-            lines
-                .into_iter()
-                .map(|(line, _)| line.to_string())
-                .fold(String::new(), |a, b| a + &b + "\n")
+pub(crate) fn parse_comment_block(input: InStr) -> ParseResult<String, IpldSchemaParseError> {
+    diagnose(
+        map(
+            many1(tuple((parse_comment_line, opt(multispace0)))),
+            |lines| {
+                lines
+                    .into_iter()
+                    .map(|(line, _)| line.to_string())
+                    .fold(String::new(), |a, b| a + &b + "\n")
+            },
+        ),
+        |error| {
+            vec![error
+                .input
+                .to_span(|c| true, IpldSchemaParseError::InvalidComment)]
         },
     )(input)
 }

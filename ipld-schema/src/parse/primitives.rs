@@ -9,38 +9,40 @@ use nom::{
     combinator::{map, opt},
     sequence::tuple,
 };
-use nom_diagnostic::{IResult, InStr};
+use nom_diagnostic::{InStr, ParseResult};
 
-use super::parse_type_name;
+use super::{parse_type_name, IpldSchemaParseError};
 
-pub(crate) fn parse_bool(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_bool(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("bool"), |_| IpldType::Bool)(input)
 }
 
-pub(crate) fn parse_string(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_string(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("string"), |_| IpldType::String)(input)
 }
 
-pub(crate) fn parse_int(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_int(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("int"), |_| IpldType::Int)(input)
 }
 
-pub(crate) fn parse_float(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_float(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("float"), |_| IpldType::Float)(input)
 }
 
-pub(crate) fn parse_any(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_any(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("any"), |_| IpldType::Any)(input)
 }
 
-pub(crate) fn parse_bytes(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_bytes(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(
         tuple((tag("bytes"), opt(parse_bytes_representation))),
         |(_, repr)| IpldType::Bytes(repr.unwrap_or(BytesRepresentation::Bytes)),
     )(input)
 }
 
-fn parse_bytes_representation(input: InStr) -> IResult<BytesRepresentation> {
+fn parse_bytes_representation(
+    input: InStr,
+) -> ParseResult<BytesRepresentation, IpldSchemaParseError> {
     map(
         tuple((
             space1,
@@ -57,21 +59,23 @@ fn parse_bytes_representation(input: InStr) -> IResult<BytesRepresentation> {
     )(input)
 }
 
-pub(crate) fn parse_link(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_link(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(
         tuple((tag("&"), space0, parse_type_name)),
         |(_, _, link)| IpldType::Link(link.to_string()),
     )(input)
 }
 
-pub(crate) fn parse_unit(input: InStr) -> IResult<IpldType> {
+pub(crate) fn parse_unit(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(
         tuple((tag("unit"), parse_unit_representation)),
         |(_, repr)| IpldType::Unit(repr),
     )(input)
 }
 
-fn parse_unit_representation(input: InStr) -> IResult<UnitRepresentation> {
+fn parse_unit_representation(
+    input: InStr,
+) -> ParseResult<UnitRepresentation, IpldSchemaParseError> {
     map(
         tuple((
             space1,
@@ -88,7 +92,7 @@ fn parse_unit_representation(input: InStr) -> IResult<UnitRepresentation> {
     )(input)
 }
 
-fn parse_advanced(input: InStr) -> IResult<InStr> {
+fn parse_advanced(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((tag("advanced"), space1, parse_type_name)),
         |(_, _, name)| name,

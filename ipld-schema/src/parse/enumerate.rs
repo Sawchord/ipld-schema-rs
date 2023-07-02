@@ -1,4 +1,4 @@
-use super::comment::parse_comment_block;
+use super::{comment::parse_comment_block, IpldSchemaParseError};
 use crate::{representation::EnumRepresentation, Doc, IpldType};
 use nom::{
     branch::alt,
@@ -10,10 +10,10 @@ use nom::{
     sequence::tuple,
     AsChar,
 };
-use nom_diagnostic::{IResult, InStr};
+use nom_diagnostic::{map_diagnose, ErrorDiagnose, InStr, ParseResult};
 
-pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
-    map_res(
+pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
+    map_diagnose(
         tuple((
             tag("enum"),
             space0,
@@ -27,15 +27,13 @@ pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
             let representation = representation.unwrap_or(EnumRepresentationTag::String);
 
             // Parse the representation tags
-            // This failes, if the tags are inconsistent with the representation specification
+            // This fails, if the tags are inconsistent with the representation specification
             let representation = match representation {
                 EnumRepresentationTag::String => {
                     let tags = members
                         .iter()
                         .map(|(_, _, tag)| match tag {
-                            EnumMemberTag::Int(_) => {
-                                Err(make_error::<&str, Error<&str>>(&"", ErrorKind::Verify))
-                            }
+                            EnumMemberTag::Int(_) => Err(IpldSchemaParseError::Unknown),
                             EnumMemberTag::String(name) => Ok(name.clone()),
                         })
                         .collect::<Result<_, _>>()?;
@@ -46,9 +44,7 @@ pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
                         .iter()
                         .map(|(_, _, tag)| match tag {
                             EnumMemberTag::Int(int) => Ok(*int),
-                            EnumMemberTag::String(_) => {
-                                Err(make_error::<&str, Error<&str>>(&"", ErrorKind::Verify))
-                            }
+                            EnumMemberTag::String(_) => Err(IpldSchemaParseError::Unknown),
                         })
                         .collect::<Result<_, _>>()?;
                     EnumRepresentation::Int(tags)
@@ -63,7 +59,7 @@ pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
                 })
                 .collect();
 
-            Ok::<_, Error<&str>>(IpldType::Enum(crate::EnumType {
+            Ok::<_, IpldSchemaParseError>(IpldType::Enum(crate::EnumType {
                 members,
                 representation,
             }))
@@ -71,11 +67,15 @@ pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
     )(input)
 }
 
-fn parse_enum_members(input: InStr) -> IResult<Vec<(Option<String>, String, EnumMemberTag)>> {
+fn parse_enum_members(
+    input: InStr,
+) -> ParseResult<Vec<(Option<String>, String, EnumMemberTag)>, IpldSchemaParseError> {
     many1(parse_enum_member)(input)
 }
 
-fn parse_enum_member(input: InStr) -> IResult<(Option<String>, String, EnumMemberTag)> {
+fn parse_enum_member(
+    input: InStr,
+) -> ParseResult<(Option<String>, String, EnumMemberTag), IpldSchemaParseError> {
     map(
         tuple((
             opt(parse_comment_block),
@@ -101,7 +101,7 @@ enum EnumMemberTag {
     String(String),
 }
 
-fn parse_enum_member_tag(input: InStr) -> IResult<EnumMemberTag> {
+fn parse_enum_member_tag(input: InStr) -> ParseResult<EnumMemberTag, IpldSchemaParseError> {
     map(
         tuple((
             space1,
@@ -131,8 +131,10 @@ enum EnumRepresentationTag {
     String,
 }
 
-fn parse_enum_representation_tag(input: InStr) -> IResult<EnumRepresentationTag> {
-    map(
+fn parse_enum_representation_tag(
+    input: InStr,
+) -> ParseResult<EnumRepresentationTag, IpldSchemaParseError> {
+    ErrorDiagnose::compat(map(
         tuple((
             space1,
             tag("representation"),
@@ -143,10 +145,10 @@ fn parse_enum_representation_tag(input: InStr) -> IResult<EnumRepresentationTag>
             )),
         )),
         |(_, _, _, tag)| tag,
-    )(input)
+    )(input))
 }
 
-fn parse_enum_member_name(input: InStr) -> IResult<InStr> {
+fn parse_enum_member_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((
             peek(take_while1(|c: char| c.is_alpha())),

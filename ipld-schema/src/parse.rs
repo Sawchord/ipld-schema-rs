@@ -20,7 +20,7 @@ use nom::{
     sequence::tuple,
     AsChar, Finish,
 };
-use nom_diagnostic::{ErrorDiagnose, IResult, InStr, ParseResult};
+use nom_diagnostic::{InStr, ParseResult};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -28,8 +28,10 @@ use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error, Default)]
 pub enum IpldSchemaParseError {
+    #[error("Parsing error in comment block")]
+    InvalidComment,
     #[default]
-    #[error("Unknown Error")]
+    #[error("Unknown error")]
     Unknown,
 }
 
@@ -48,18 +50,20 @@ fn parse_schema(
 ) -> ParseResult<BTreeMap<String, Doc<IpldType>>, IpldSchemaParseError> {
     // TODO: Handle name duplication
     // TODO: How to handle non empty input
-    ErrorDiagnose::compat(fold_many0(
+    fold_many0(
         parse_type_declaration,
         || BTreeMap::new(),
         |mut schema, (name, decl)| {
             schema.insert(name, decl);
             schema
         },
-    )(input))
+    )(input)
 }
 
 /// Parses a complete type declaration, i.e. the type name and the type definiton
-fn parse_type_declaration(input: InStr) -> IResult<(String, Doc<IpldType>)> {
+fn parse_type_declaration(
+    input: InStr,
+) -> ParseResult<(String, Doc<IpldType>), IpldSchemaParseError> {
     map(
         tuple((
             opt(parse_comment_block),
@@ -87,7 +91,7 @@ fn parse_type_declaration(input: InStr) -> IResult<(String, Doc<IpldType>)> {
 ///
 /// - First character is a capital letter
 /// - Rest of the characters are alphanumerical or underscore
-fn parse_type_name(input: InStr) -> IResult<InStr> {
+fn parse_type_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((
             peek(take_while1(|c: char| c.is_alpha() && c.is_uppercase())),
@@ -98,7 +102,7 @@ fn parse_type_name(input: InStr) -> IResult<InStr> {
 }
 
 /// Parses the type definition
-fn parse_type_definition(input: InStr) -> IResult<IpldType> {
+fn parse_type_definition(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     alt((
         parse_bool,
         parse_string,
