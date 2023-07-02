@@ -20,16 +20,17 @@ use nom::{
     sequence::tuple,
     AsChar, Finish,
 };
-use nom_diagnostic::{IResult, InStr};
+use nom_diagnostic::{ErrorDiagnose, IResult, InStr, ParseResult};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
 // TODO: Proper error handling
 
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Error, Default)]
 pub enum IpldSchemaParseError {
-    #[error("Generic Error")]
-    Generic,
+    #[default]
+    #[error("Unknown Error")]
+    Unknown,
 }
 
 impl IpldSchema {
@@ -38,21 +39,23 @@ impl IpldSchema {
         parse_schema(input)
             .finish()
             .map(|(_, schema)| IpldSchema(schema))
-            .map_err(|_| IpldSchemaParseError::Generic)
+            .map_err(|_| IpldSchemaParseError::Unknown)
     }
 }
 
-fn parse_schema(input: InStr) -> IResult<BTreeMap<String, Doc<IpldType>>> {
+fn parse_schema(
+    input: InStr,
+) -> ParseResult<BTreeMap<String, Doc<IpldType>>, IpldSchemaParseError> {
     // TODO: Handle name duplication
     // TODO: How to handle non empty input
-    fold_many0(
+    ErrorDiagnose::compat(fold_many0(
         parse_type_declaration,
         || BTreeMap::new(),
         |mut schema, (name, decl)| {
             schema.insert(name, decl);
             schema
         },
-    )(input)
+    )(input))
 }
 
 /// Parses a complete type declaration, i.e. the type name and the type definiton

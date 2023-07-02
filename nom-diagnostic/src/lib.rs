@@ -7,7 +7,10 @@ use codespan_reporting::{
         termcolor::{ColorChoice, StandardStream},
     },
 };
-use nom::{error::Error as NomError, InputTakeAtPosition, Parser};
+use nom::{
+    error::{Error as NomError, ParseError},
+    InputTakeAtPosition, Parser,
+};
 use std::error::Error as StdError;
 
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InStr`].
@@ -140,10 +143,23 @@ where
     errors: Vec<Span<'a, T>>,
 }
 
-impl<'a, T> ErrorDiagnose<'a, T>
+impl<'a, E> ErrorDiagnose<'a, E>
 where
-    T: StdError + Default + Clone,
+    E: StdError + Default + Clone,
 {
+    pub fn compat<T>(result: IResult<'a, T>) -> ParseResult<'a, T, E> {
+        match result {
+            Ok(val) => Ok(val),
+            Err(nom::Err::Incomplete(needed)) => Err(nom::Err::Incomplete(needed)),
+            Err(nom::Err::Error(err)) => Err(nom::Err::Error(ErrorDiagnose::from_error_kind(
+                err.input, err.code,
+            ))),
+            Err(nom::Err::Failure(err)) => Err(nom::Err::Failure(ErrorDiagnose::from_error_kind(
+                err.input, err.code,
+            ))),
+        }
+    }
+
     pub fn display(&self) {
         let mut files = SimpleFiles::new();
         let file = files.add(self.file.unwrap_or(""), self.src);
