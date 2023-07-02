@@ -130,10 +130,10 @@ impl<'a> InputTakeAtPosition for InStr<'a> {
                 Ok((suffix, prefix))
             }
             None => {
-                // Return right as simply an empty section at the end
-                let mut right = self.clone();
-                right.span_start = self.span_end;
-                Ok((self.clone(), right))
+                // Suffix is simply an empty section while prefix is the whole rest of the output
+                let mut suffix = self.clone();
+                suffix.span_start = self.span_end;
+                Ok((suffix, self.clone()))
             }
         }
     }
