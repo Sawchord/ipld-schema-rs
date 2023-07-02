@@ -51,6 +51,24 @@ where
     }
 }
 
+pub fn map_diagnose<'a, P, Po, M, Mo, E>(
+    mut parser: P,
+    map: M,
+) -> impl FnOnce(InStr<'a>) -> ParseResult<'a, Mo, E>
+where
+    P: Parser<InStr<'a>, Po, ErrorDiagnose<'a, E>>,
+    M: Fn(Po) -> Result<Mo, ErrorDiagnose<'a, E>>,
+    E: StdError + Default,
+{
+    move |input: InStr<'a>| match parser.parse(input) {
+        Ok((input, parse_output)) => match map(parse_output) {
+            Ok(value) => Ok((input, value)),
+            Err(err) => Err(nom::Err::Error(err)),
+        },
+        Err(err) => Err(err),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct InStr<'a> {
     src: &'a str,
@@ -85,6 +103,7 @@ impl<'a> InStr<'a> {
         &self.src[self.span_start..self.span_end]
     }
 
+    // TODO: Rename to error_span
     pub fn to_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
     where
         P: Fn(char) -> bool,
@@ -102,6 +121,8 @@ impl<'a> InStr<'a> {
             hint: None,
         }
     }
+
+    // TODO: map_span
 
     /// Finalize the input processing
     ///
@@ -202,3 +223,5 @@ impl<'a, T> Span<'a, T> {
         self.inner
     }
 }
+
+// TODO: Deref and deref mut and map and into for span
