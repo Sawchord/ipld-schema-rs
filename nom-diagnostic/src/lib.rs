@@ -11,7 +11,10 @@ use nom::{
     error::{Error as NomError, ParseError},
     InputTakeAtPosition, Parser,
 };
-use std::error::Error as StdError;
+use std::{
+    error::Error as StdError,
+    ops::{Deref, DerefMut},
+};
 
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InStr`].
 pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
@@ -222,6 +225,37 @@ impl<'a, T> Span<'a, T> {
     pub fn into_inner(self) -> T {
         self.inner
     }
+
+    pub fn map<F, K>(self, f: F) -> Span<'a, K>
+    where
+        F: Fn(T) -> K,
+    {
+        Span {
+            start: self.start,
+            end: self.end,
+            inner: f(self.inner),
+            hint: self.hint,
+        }
+    }
 }
 
-// TODO: Deref and deref mut and map and into for span
+// TODO: Figure out how to make this work
+// impl<'a, T> From<Span<'a, T>> for T {
+//     fn from(value: Span<'a, T>) -> Self {
+//         todo!()
+//     }
+// }
+
+impl<'a, T> Deref for Span<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<'a, T> DerefMut for Span<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
