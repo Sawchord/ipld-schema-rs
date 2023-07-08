@@ -12,6 +12,7 @@ use nom::{
     InputTakeAtPosition, Parser,
 };
 use std::{
+    collections::BTreeMap,
     error::Error as StdError,
     ops::{Deref, DerefMut},
 };
@@ -37,19 +38,11 @@ where
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
         Err(nom::Err::Error(err)) => {
             let errors = span_parser(err);
-            Err(nom::Err::Error(ErrorDiagnose {
-                src: input.src,
-                file: input.file,
-                errors,
-            }))
+            Err(nom::Err::Error(ErrorDiagnose { errors }))
         }
         Err(nom::Err::Failure(err)) => {
             let errors = span_parser(err);
-            Err(nom::Err::Failure(ErrorDiagnose {
-                src: input.src,
-                file: input.file,
-                errors,
-            }))
+            Err(nom::Err::Failure(ErrorDiagnose { errors }))
         }
     }
 }
@@ -118,6 +111,8 @@ impl<'a> InStr<'a> {
             .unwrap_or_else(|_| self.clone());
 
         Span {
+            src: span.src,
+            file: span.file,
             start: span.span_start,
             end: span.span_end,
             inner,
@@ -138,9 +133,9 @@ impl<'a> InStr<'a> {
             Ok(())
         } else {
             Err(ErrorDiagnose {
-                src: self.src,
-                file: self.file,
                 errors: vec![Span {
+                    src: self.src,
+                    file: self.file,
                     start: self.span_start,
                     end: self.span_end,
                     inner: error,
@@ -162,8 +157,6 @@ pub struct ErrorDiagnose<'a, T>
 where
     T: StdError + Default,
 {
-    src: &'a str,
-    file: Option<&'a str>,
     errors: Vec<Span<'a, T>>,
 }
 
@@ -186,13 +179,18 @@ where
 
     pub fn display(&self) {
         let mut files = SimpleFiles::new();
-        let file = files.add(self.file.unwrap_or(""), self.src);
+        let mut files_map = BTreeMap::new();
+        //let file = files.add(self.file.unwrap_or(""), self.src);
 
         let writer = StandardStream::stderr(ColorChoice::Always);
         let config = codespan_reporting::term::Config::default();
 
         for error in self.errors.iter() {
-            let label = Label::primary(file, error.start..error.end);
+            let file = files_map
+                .entry((error.file.unwrap_or(""), error.src))
+                .or_insert_with(|| files.add(error.file.unwrap_or(""), error.src));
+
+            let label = Label::primary(*file, error.start..error.end);
             let label = if let Some(hint) = error.hint {
                 label.with_message(hint)
             } else {
@@ -210,6 +208,8 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span<'a, T> {
+    src: &'a str,
+    file: Option<&'a str>,
     start: usize,
     end: usize,
     inner: T,
@@ -231,6 +231,8 @@ impl<'a, T> Span<'a, T> {
         F: Fn(T) -> K,
     {
         Span {
+            src: self.src,
+            file: self.file,
             start: self.start,
             end: self.end,
             inner: f(self.inner),

@@ -226,9 +226,9 @@ where
 {
     fn from_error_kind(input: InStr<'a>, _: ErrorKind) -> Self {
         ErrorDiagnose {
-            src: input.src,
-            file: input.file,
             errors: vec![Span {
+                src: input.src,
+                file: input.file,
                 start: input.span_start,
                 end: input.span_end,
                 inner: T::default(),
@@ -238,10 +238,9 @@ where
     }
 
     fn append(input: InStr<'a>, _: ErrorKind, mut other: Self) -> Self {
-        assert_eq!(input.src, other.src);
-        assert_eq!(input.file, other.file);
-
         other.errors.push(Span {
+            src: input.src,
+            file: input.file,
             start: input.span_start,
             end: input.span_end,
             inner: T::default(),
