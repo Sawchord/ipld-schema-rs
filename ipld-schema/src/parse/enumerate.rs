@@ -34,7 +34,7 @@ pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
                         .iter()
                         .map(|(_, _, tag)| match tag {
                             EnumMemberTag::Int(_) => {
-                                Err(make_error::<&str, Error<&str>>(&"", ErrorKind::Verify))
+                                Err(make_error::<&str, Error<&str>>("", ErrorKind::Verify))
                             }
                             EnumMemberTag::String(name) => Ok(name.clone()),
                         })
@@ -47,7 +47,7 @@ pub(crate) fn parse_enum(input: InStr) -> IResult<IpldType> {
                         .map(|(_, _, tag)| match tag {
                             EnumMemberTag::Int(int) => Ok(*int),
                             EnumMemberTag::String(_) => {
-                                Err(make_error::<&str, Error<&str>>(&"", ErrorKind::Verify))
+                                Err(make_error::<&str, Error<&str>>("", ErrorKind::Verify))
                             }
                         })
                         .collect::<Result<_, _>>()?;
