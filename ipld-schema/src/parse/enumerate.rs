@@ -39,7 +39,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                             enum_member
                                 .map(|(_, _, tag)| match tag {
                                     EnumMemberTag::Int(_) => {
-                                        Err(IpldSchemaParseError::InvalidEnumRepresentation)
+                                        Err(IpldSchemaParseError::InvalidEnumMemberTag)
                                     }
                                     EnumMemberTag::String(name) => Ok(name.clone()),
                                 })
@@ -63,7 +63,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                                 .map(|(_, _, tag)| match tag {
                                     EnumMemberTag::Int(int) => Ok(int),
                                     EnumMemberTag::String(_) => {
-                                        Err(IpldSchemaParseError::InvalidEnumRepresentation)
+                                        Err(IpldSchemaParseError::InvalidEnumMemberTag)
                                     }
                                 })
                                 .with_hint(
@@ -86,7 +86,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                 })
                 .collect();
 
-            Ok(IpldType::Enum(crate::EnumType {
+            Ok::<_, ErrorDiagnose<'_, _>>(IpldType::Enum(crate::EnumType {
                 members,
                 representation,
             }))

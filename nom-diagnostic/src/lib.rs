@@ -27,42 +27,45 @@ pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
 /// up in the chain.
 pub type ParseResult<'a, T, E> = Result<(InStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
 
-pub fn diagnose<'a, P, S, Po, E>(
+pub fn diagnose<'a, P, S, Po, E1, E2, E3>(
     mut parser: P,
     span_parser: S,
-) -> impl FnMut(InStr<'a>) -> ParseResult<'a, Po, E>
+) -> impl FnMut(InStr<'a>) -> ParseResult<'a, Po, E3>
 where
-    P: Parser<InStr<'a>, Po, NomError<InStr<'a>>>,
-    S: Fn(NomError<InStr<'a>>) -> Vec<Span<'a, E>>,
-    E: StdError + Default + Clone,
+    P: Parser<InStr<'a>, Po, E2>,
+    S: Fn(E2) -> E1,
+    E1: Into<ErrorDiagnose<'a, E3>>,
+    E2: ParseError<InStr<'a>>,
+    E3: StdError + Default + Clone,
 {
     move |input: InStr<'a>| match parser.parse(input.clone()) {
         Ok(output) => Ok(output),
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
         Err(nom::Err::Error(err)) => {
             let errors = span_parser(err);
-            Err(nom::Err::Error(ErrorDiagnose { errors }))
+            Err(nom::Err::Error(errors.into()))
         }
         Err(nom::Err::Failure(err)) => {
             let errors = span_parser(err);
-            Err(nom::Err::Failure(ErrorDiagnose { errors }))
+            Err(nom::Err::Failure(errors.into()))
         }
     }
 }
 
-pub fn map_diagnose<'a, P, Po, M, Mo, E>(
+pub fn map_diagnose<'a, P, Po, M, Mo, E1, E2>(
     mut parser: P,
     map: M,
-) -> impl FnOnce(InStr<'a>) -> ParseResult<'a, Mo, E>
+) -> impl FnOnce(InStr<'a>) -> ParseResult<'a, Mo, E2>
 where
-    P: Parser<InStr<'a>, Po, ErrorDiagnose<'a, E>>,
-    M: Fn(Po) -> Result<Mo, ErrorDiagnose<'a, E>>,
-    E: StdError + Default,
+    P: Parser<InStr<'a>, Po, ErrorDiagnose<'a, E2>>,
+    M: Fn(Po) -> Result<Mo, E1>,
+    E1: Into<ErrorDiagnose<'a, E2>>,
+    E2: StdError + Default,
 {
     move |input: InStr<'a>| match parser.parse(input) {
         Ok((input, parse_output)) => match map(parse_output) {
             Ok(value) => Ok((input, value)),
-            Err(err) => Err(nom::Err::Error(err)),
+            Err(err) => Err(nom::Err::Error(err.into())),
         },
         Err(err) => Err(err),
     }

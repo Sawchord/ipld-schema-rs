@@ -30,8 +30,10 @@ use thiserror::Error;
 pub enum IpldSchemaParseError {
     #[error("Parsing error in comment block")]
     InvalidComment,
-    #[error("Enum member tag does not match representation")]
+    #[error("Enum representation must either be \"int\" or \"string\"")]
     InvalidEnumRepresentation,
+    #[error("Enum member tag does not match representation")]
+    InvalidEnumMemberTag,
     #[default]
     #[error("Unknown error")]
     Unknown,
