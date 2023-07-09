@@ -17,6 +17,9 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+// Open Questions:
+// Do we need the compat function in ErrorDiagnost
+
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InStr`].
 pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
 
@@ -99,7 +102,6 @@ impl<'a> InStr<'a> {
         &self.src[self.span_start..self.span_end]
     }
 
-    // TODO: Rename to error_span
     pub fn error_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
     where
         P: Fn(char) -> bool,
@@ -218,6 +220,10 @@ where
     }
 }
 
+/// A [`Span`] is a wrapper type that keeps track if where exactly the
+/// inner type was parsed from.
+///
+/// This can be used to provide better error diagnostics.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span<'a, T> {
     src: &'a str,
@@ -229,15 +235,20 @@ pub struct Span<'a, T> {
 }
 
 impl<'a, T> Span<'a, T> {
+    /// Add a hint to the span.
+    ///
+    /// This can be used to provide additional context to error messages
     pub fn with_hint(mut self, hint: &'a str) -> Self {
         self.hint = Some(hint);
         self
     }
 
+    /// Retreive the wrapped value from the [`Span`]
     pub fn into_inner(self) -> T {
         self.inner
     }
 
+    /// Takes a closure and transforms the inner type of the [`Span`] into a new type
     pub fn map<F, K>(self, f: F) -> Span<'a, K>
     where
         F: Fn(T) -> K,
@@ -252,13 +263,6 @@ impl<'a, T> Span<'a, T> {
         }
     }
 }
-
-// TODO: Figure out how to make this work
-// impl<'a, T> From<Span<'a, T>> for T {
-//     fn from(value: Span<'a, T>) -> Self {
-//         todo!()
-//     }
-// }
 
 impl<'a, T> Deref for Span<'a, T> {
     type Target = T;
