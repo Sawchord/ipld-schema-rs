@@ -40,3 +40,5 @@ struct EnumType {
     members: Vec<Doc<String>>,
     representation: EnumRepresentation,
 }
+
+// TODO: InlineIpldType (Name, List Map, Link)

@@ -1,17 +1,17 @@
-use crate::{
-    representation::{BytesRepresentation, UnitRepresentation},
-    IpldType,
-};
+use crate::{representation::BytesRepresentation, IpldType};
 use nom::{
-    branch::alt,
     bytes::complete::tag,
-    character::complete::{space0, space1},
+    character::complete::space0,
     combinator::{map, opt},
     sequence::tuple,
 };
 use nom_diagnostic::{InStr, ParseResult};
 
-use super::{parse_type_name, IpldSchemaParseError};
+use super::{
+    parse_type_name,
+    representation::{parse_bytes_representation, parse_unit_representation},
+    IpldSchemaParseError,
+};
 
 pub(crate) fn parse_bool(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("bool"), |_| IpldType::Bool)(input)
@@ -40,25 +40,6 @@ pub(crate) fn parse_bytes(input: InStr) -> ParseResult<IpldType, IpldSchemaParse
     )(input)
 }
 
-fn parse_bytes_representation(
-    input: InStr,
-) -> ParseResult<BytesRepresentation, IpldSchemaParseError> {
-    map(
-        tuple((
-            space1,
-            tag("representation"),
-            space1,
-            alt((
-                map(parse_advanced, |advanced| {
-                    BytesRepresentation::Advanced(advanced.to_string())
-                }),
-                map(tag("bytes"), |_| BytesRepresentation::Bytes),
-            )),
-        )),
-        |(_, _, _, repr)| repr,
-    )(input)
-}
-
 pub(crate) fn parse_link(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(
         tuple((tag("&"), space0, parse_type_name)),
@@ -73,37 +54,10 @@ pub(crate) fn parse_unit(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
     )(input)
 }
 
-fn parse_unit_representation(
-    input: InStr,
-) -> ParseResult<UnitRepresentation, IpldSchemaParseError> {
-    map(
-        tuple((
-            space1,
-            tag("representation"),
-            space1,
-            alt((
-                map(tag("null"), |_| UnitRepresentation::Null),
-                map(tag("true"), |_| UnitRepresentation::True),
-                map(tag("false"), |_| UnitRepresentation::False),
-                map(tag("emptymap"), |_| UnitRepresentation::EmptyMap),
-            )),
-        )),
-        |(_, _, _, repr)| repr,
-    )(input)
-}
-
-fn parse_advanced(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
-    map(
-        tuple((tag("advanced"), space1, parse_type_name)),
-        |(_, _, name)| name,
-    )(input)
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{parse::parse_type_declaration, Doc};
-
     use super::*;
+    use crate::{parse::parse_type_declaration, representation::UnitRepresentation, Doc};
 
     #[test]
     fn test_bool_declaration_uncommented() {

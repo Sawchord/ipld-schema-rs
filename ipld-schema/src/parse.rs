@@ -1,6 +1,7 @@
 mod comment;
 mod enumerate;
 mod primitives;
+mod representation;
 
 use self::{
     comment::parse_comment_block,
@@ -93,6 +94,7 @@ fn parse_type_declaration(
 ///
 /// - First character is a capital letter
 /// - Rest of the characters are alphanumerical or underscore
+// TODO: Diagnose
 fn parse_type_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((

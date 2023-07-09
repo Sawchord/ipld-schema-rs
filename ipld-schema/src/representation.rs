@@ -7,22 +7,29 @@ pub(crate) enum BytesRepresentation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum MapRepresentation {
+pub(crate) enum StructRepresentation {
+    Map,
+    Tuple,
     StringPairs(StringPairs),
+    StringJoin(String),
     ListPairs,
     Advanced(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ListRepresentation {
-    List,
+pub(crate) enum MapRepresentation {
+    Map,
+    StringPairs(StringPairs),
+    ListPairs,
     Advanced(String),
 }
 
+// TODO: Define UnitRepresentation
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct StringPairs {
-    inner_delim: String,
-    outer_delim: String,
+pub(crate) enum ListRepresentation {
+    List,
+    Advanced(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, EnumString)]
@@ -38,4 +45,10 @@ pub(crate) enum UnitRepresentation {
     True,
     False,
     EmptyMap,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct StringPairs {
+    inner_delim: String,
+    outer_delim: String,
 }

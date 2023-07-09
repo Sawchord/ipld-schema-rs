@@ -1,4 +1,6 @@
-use super::{comment::parse_comment_block, IpldSchemaParseError};
+use super::{
+    comment::parse_comment_block, representation::parse_enum_representation, IpldSchemaParseError,
+};
 use crate::{representation::EnumRepresentation, Doc, IpldType};
 use nom::{
     branch::alt,
@@ -9,7 +11,7 @@ use nom::{
     sequence::tuple,
     AsChar,
 };
-use nom_diagnostic::{diagnose, map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
+use nom_diagnostic::{map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
 
 pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map_diagnose(
@@ -19,7 +21,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
             tag("{"),
             parse_enum_members,
             tag("}"),
-            opt(parse_enum_representation_tag),
+            opt(parse_enum_representation),
         )),
         |(_, _, _, members, _, representation)| {
             // If no representation is given, we default to string
@@ -156,39 +158,9 @@ fn parse_enum_member_tag(input: InStr) -> ParseResult<EnumMemberTag, IpldSchemaP
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum EnumRepresentationTag {
+pub(crate) enum EnumRepresentationTag {
     Int,
     String,
-}
-
-fn parse_enum_representation_tag(
-    input: InStr,
-) -> ParseResult<Span<EnumRepresentationTag>, IpldSchemaParseError> {
-    span(map(
-        tuple((
-            space1,
-            tag("representation"),
-            space1,
-            diagnose(
-                alt((
-                    map(tag("int"), |_| EnumRepresentationTag::Int),
-                    map(tag("string"), |_| EnumRepresentationTag::String),
-                )),
-                |error: nom::error::Error<_>| {
-                    error
-                        .input
-                        .error_span(
-                            |c| !c.is_alphanumeric(),
-                            |name| {
-                                IpldSchemaParseError::InvalidEnumRepresentation(name.to_string())
-                            },
-                        )
-                        .with_hint("this is not a valid value")
-                },
-            ),
-        )),
-        |(_, _, _, tag)| tag,
-    ))(input)
 }
 
 fn parse_enum_member_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
