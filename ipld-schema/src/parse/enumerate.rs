@@ -9,7 +9,7 @@ use nom::{
     sequence::tuple,
     AsChar,
 };
-use nom_diagnostic::{map_diagnose, ErrorDiagnose, InStr, ParseResult};
+use nom_diagnostic::{map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
 
 pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map_diagnose(
@@ -23,39 +23,63 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
         )),
         |(_, _, _, members, _, representation)| {
             // If no representation is given, we default to string
-            let representation = representation.unwrap_or(EnumRepresentationTag::String);
+            let representation = representation
+                .map(|x| x.into_inner())
+                .unwrap_or(EnumRepresentationTag::String);
 
             // Parse the representation tags
             // This fails, if the tags are inconsistent with the representation specification
+            // If the representation tag is a string, check that all member tags are strings
             let representation = match representation {
                 EnumRepresentationTag::String => {
                     let tags = members
-                        .iter()
-                        .map(|(_, _, tag)| match tag {
-                            EnumMemberTag::Int(_) => Err(IpldSchemaParseError::Unknown),
-                            EnumMemberTag::String(name) => Ok(name.clone()),
+                        .clone()
+                        .into_iter()
+                        .map(|enum_member| {
+                            enum_member
+                                .map(|(_, _, tag)| match tag {
+                                    EnumMemberTag::Int(_) => {
+                                        Err(IpldSchemaParseError::InvalidEnumRepresentation)
+                                    }
+                                    EnumMemberTag::String(name) => Ok(name.clone()),
+                                })
+                                .with_hint(
+                                    "Enum member tag is an integer, but representation is string",
+                                )
+                                .transform()
                         })
                         .collect::<Result<_, _>>()
-                        // FIXME
-                        .unwrap();
+                        .map_err(|err| ErrorDiagnose::from(err))?;
                     EnumRepresentation::String(tags)
                 }
+
+                // If the representation tag is an int, we need to check that all values are ints
                 EnumRepresentationTag::Int => {
                     let tags = members
-                        .iter()
-                        .map(|(_, _, tag)| match tag {
-                            EnumMemberTag::Int(int) => Ok(*int),
-                            EnumMemberTag::String(_) => Err(IpldSchemaParseError::Unknown),
+                        .clone()
+                        .into_iter()
+                        .map(|enum_member| {
+                            enum_member
+                                .map(|(_, _, tag)| match tag {
+                                    EnumMemberTag::Int(int) => Ok(int),
+                                    EnumMemberTag::String(_) => {
+                                        Err(IpldSchemaParseError::InvalidEnumRepresentation)
+                                    }
+                                })
+                                .with_hint(
+                                    "Enum member tag is a string, but representation is an integer",
+                                )
+                                .transform()
                         })
                         .collect::<Result<_, _>>()
-                        // FIXME
-                        .unwrap();
+                        .map_err(|err| ErrorDiagnose::from(err))?;
                     EnumRepresentation::Int(tags)
                 }
             };
 
             let members = members
                 .into_iter()
+                .map(|enum_member| enum_member.into_inner())
                 .map(|(comment, name, _)| Doc {
                     doc: comment,
                     ty: name,
@@ -72,14 +96,14 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
 
 fn parse_enum_members(
     input: InStr,
-) -> ParseResult<Vec<(Option<String>, String, EnumMemberTag)>, IpldSchemaParseError> {
+) -> ParseResult<Vec<Span<(Option<String>, String, EnumMemberTag)>>, IpldSchemaParseError> {
     many1(parse_enum_member)(input)
 }
 
 fn parse_enum_member(
     input: InStr,
-) -> ParseResult<(Option<String>, String, EnumMemberTag), IpldSchemaParseError> {
-    map(
+) -> ParseResult<Span<(Option<String>, String, EnumMemberTag)>, IpldSchemaParseError> {
+    span(map(
         tuple((
             opt(parse_comment_block),
             multispace0,
@@ -96,9 +120,10 @@ fn parse_enum_member(
                 tag.unwrap_or(EnumMemberTag::String(name.to_string())),
             )
         },
-    )(input)
+    ))(input)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum EnumMemberTag {
     Int(i128),
     String(String),
@@ -129,6 +154,7 @@ fn parse_enum_member_tag(input: InStr) -> ParseResult<EnumMemberTag, IpldSchemaP
     )(input)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum EnumRepresentationTag {
     Int,
     String,
@@ -136,8 +162,8 @@ enum EnumRepresentationTag {
 
 fn parse_enum_representation_tag(
     input: InStr,
-) -> ParseResult<EnumRepresentationTag, IpldSchemaParseError> {
-    ErrorDiagnose::compat(map(
+) -> ParseResult<Span<EnumRepresentationTag>, IpldSchemaParseError> {
+    span(map(
         tuple((
             space1,
             tag("representation"),
@@ -148,7 +174,7 @@ fn parse_enum_representation_tag(
             )),
         )),
         |(_, _, _, tag)| tag,
-    )(input))
+    ))(input)
 }
 
 fn parse_enum_member_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {

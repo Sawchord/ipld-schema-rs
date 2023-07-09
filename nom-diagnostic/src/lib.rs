@@ -30,7 +30,7 @@ pub type ParseResult<'a, T, E> = Result<(InStr<'a>, T), nom::Err<ErrorDiagnose<'
 pub fn diagnose<'a, P, S, Po, E>(
     mut parser: P,
     span_parser: S,
-) -> impl FnOnce(InStr<'a>) -> ParseResult<'a, Po, E>
+) -> impl FnMut(InStr<'a>) -> ParseResult<'a, Po, E>
 where
     P: Parser<InStr<'a>, Po, NomError<InStr<'a>>>,
     S: Fn(NomError<InStr<'a>>) -> Vec<Span<'a, E>>,
@@ -167,11 +167,11 @@ impl<'a> ToString for InStr<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ErrorDiagnose<'a, T>
+pub struct ErrorDiagnose<'a, E>
 where
-    T: StdError + Default,
+    E: StdError + Default,
 {
-    errors: Vec<Span<'a, T>>,
+    errors: Vec<Span<'a, E>>,
 }
 
 impl<'a, E> ErrorDiagnose<'a, E>
@@ -220,10 +220,30 @@ where
     }
 }
 
+impl<'a, E> From<Vec<Span<'a, E>>> for ErrorDiagnose<'a, E>
+where
+    E: StdError + Default,
+{
+    fn from(errors: Vec<Span<'a, E>>) -> Self {
+        Self { errors }
+    }
+}
+
+impl<'a, E> From<Span<'a, E>> for ErrorDiagnose<'a, E>
+where
+    E: StdError + Default,
+{
+    fn from(errors: Span<'a, E>) -> Self {
+        Self {
+            errors: vec![errors],
+        }
+    }
+}
+
 /// Calls the inner parser and wraps the result into a [`Span`]
 pub fn span<'a, P, T, E>(
     mut parser: P,
-) -> impl FnOnce(InStr<'a>) -> Result<(InStr<'a>, Span<T>), nom::Err<E>>
+) -> impl FnMut(InStr<'a>) -> Result<(InStr<'a>, Span<T>), nom::Err<E>>
 where
     P: Parser<InStr<'a>, T, E>,
     E: ParseError<InStr<'a>>,
@@ -289,6 +309,22 @@ impl<'a, T> Span<'a, T> {
             end: self.end,
             inner: f(self.inner),
             hint: self.hint,
+        }
+    }
+}
+
+impl<'a, T, E> Span<'a, Result<T, E>> {
+    pub fn transform(self) -> Result<T, Span<'a, E>> {
+        match self.inner {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Span {
+                src: self.src,
+                file: self.file,
+                start: self.start,
+                end: self.end,
+                inner: err,
+                hint: self.hint,
+            }),
         }
     }
 }
