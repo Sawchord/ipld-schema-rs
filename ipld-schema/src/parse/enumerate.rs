@@ -9,7 +9,7 @@ use nom::{
     sequence::tuple,
     AsChar,
 };
-use nom_diagnostic::{map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
+use nom_diagnostic::{diagnose, map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
 
 pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map_diagnose(
@@ -169,10 +169,23 @@ fn parse_enum_representation_tag(
             space1,
             tag("representation"),
             space1,
-            alt((
-                map(tag("int"), |_| EnumRepresentationTag::Int),
-                map(tag("string"), |_| EnumRepresentationTag::String),
-            )),
+            diagnose(
+                alt((
+                    map(tag("int"), |_| EnumRepresentationTag::Int),
+                    map(tag("string"), |_| EnumRepresentationTag::String),
+                )),
+                |error: nom::error::Error<_>| {
+                    error
+                        .input
+                        .error_span(
+                            |c| !c.is_alphanumeric(),
+                            |name| {
+                                IpldSchemaParseError::InvalidEnumRepresentation(name.to_string())
+                            },
+                        )
+                        .with_hint("this is not a valid value")
+                },
+            ),
         )),
         |(_, _, _, tag)| tag,
     ))(input)

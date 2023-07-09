@@ -24,14 +24,12 @@ use nom_diagnostic::{InStr, ParseResult};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
-// TODO: Proper error handling
-
 #[derive(Debug, Clone, PartialEq, Eq, Error, Default)]
 pub enum IpldSchemaParseError {
     #[error("Parsing error in comment block")]
     InvalidComment,
-    #[error("Enum representation must either be \"int\" or \"string\"")]
-    InvalidEnumRepresentation,
+    #[error("Enum representation must either be \"int\" or \"string\", found \"{0}\"")]
+    InvalidEnumRepresentation(String),
     #[error("Enum member tag does not match representation")]
     InvalidEnumMemberTag,
     #[default]
