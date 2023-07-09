@@ -220,6 +220,35 @@ where
     }
 }
 
+/// Calls the inner parser and wraps the result into a [`Span`]
+pub fn span<'a, P, T, E>(
+    mut parser: P,
+) -> impl FnOnce(InStr<'a>) -> Result<(InStr<'a>, Span<T>), nom::Err<E>>
+where
+    P: Parser<InStr<'a>, T, E>,
+    E: ParseError<InStr<'a>>,
+{
+    move |input: InStr<'a>| {
+        let start = input.span_start;
+        parser.parse(input).map(|(input, parsed)| {
+            let end = input.span_start;
+            let src = input.src;
+            let file = input.file;
+            (
+                input,
+                Span {
+                    src,
+                    file,
+                    start,
+                    end,
+                    inner: parsed,
+                    hint: None,
+                },
+            )
+        })
+    }
+}
+
 /// A [`Span`] is a wrapper type that keeps track if where exactly the
 /// inner type was parsed from.
 ///
