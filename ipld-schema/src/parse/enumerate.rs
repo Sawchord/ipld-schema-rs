@@ -41,15 +41,15 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                                     EnumMemberTag::Int(_) => {
                                         Err(IpldSchemaParseError::InvalidEnumMemberTag)
                                     }
-                                    EnumMemberTag::String(name) => Ok(name.clone()),
+                                    EnumMemberTag::String(name) => Ok(name),
                                 })
                                 .with_hint(
-                                    "Enum member tag is an integer, but representation is string",
+                                    "enum member tag is an integer but representation is string",
                                 )
                                 .transform()
                         })
                         .collect::<Result<_, _>>()
-                        .map_err(|err| ErrorDiagnose::from(err))?;
+                        .map_err(ErrorDiagnose::from)?;
                     EnumRepresentation::String(tags)
                 }
 
@@ -67,12 +67,12 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                                     }
                                 })
                                 .with_hint(
-                                    "Enum member tag is a string, but representation is an integer",
+                                    "enum member tag is a string but representation is an integer",
                                 )
                                 .transform()
                         })
                         .collect::<Result<_, _>>()
-                        .map_err(|err| ErrorDiagnose::from(err))?;
+                        .map_err(ErrorDiagnose::from)?;
                     EnumRepresentation::Int(tags)
                 }
             };
@@ -94,6 +94,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
     )(input)
 }
 
+#[allow(clippy::type_complexity)]
 fn parse_enum_members(
     input: InStr,
 ) -> ParseResult<Vec<Span<(Option<String>, String, EnumMemberTag)>>, IpldSchemaParseError> {
