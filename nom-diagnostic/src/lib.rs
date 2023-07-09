@@ -67,6 +67,7 @@ where
     }
 }
 
+// TODO: Document
 pub fn map_diagnose<'a, P, Po, M, Mo, E1, E2>(
     mut parser: P,
     map: M,
@@ -120,10 +121,11 @@ impl<'a> InStr<'a> {
         &self.src[self.span_start..self.span_end]
     }
 
-    pub fn error_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
+    // TODO: Document
+    pub fn error_span<P, F, E>(&self, predicate: P, map: F) -> Span<'a, E>
     where
         P: Fn(char) -> bool,
-        E: StdError + Default,
+        F: Fn(&str) -> E,
     {
         let span: InStr<'a> = self
             .split_at_position_complete::<_, ()>(predicate)
@@ -135,11 +137,12 @@ impl<'a> InStr<'a> {
             file: span.file,
             start: span.span_start,
             end: span.span_end,
-            inner,
+            inner: map(span.inner()),
             hint: None,
         }
     }
 
+    // TODO: Document
     pub fn map<F, T>(&self, f: F) -> Span<'a, T>
     where
         F: Fn(&str) -> T,
