@@ -27,9 +27,24 @@ pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
 /// up in the chain.
 pub type ParseResult<'a, T, E> = Result<(InStr<'a>, T), nom::Err<ErrorDiagnose<'a, E>>>;
 
+/// Map the error output of a parser into something that can be interpreted as a [`ErrorDiagnose`].
+///
+/// Use this function, if you consider the error of a parser to be significant in the context
+/// of your application and you want to attach diagnose data to it.
+/// This means, there might be cases where you want to display this error to the user.
+///
+/// # Arguments
+///
+/// - `parser`: The inner parser. If it succeeds, the value will simply be passed through.
+/// - `span_map`: A function that maps the error returned by `parser` into a type that can be interpreted as an [`ErrorDiagnose`].
+///
+/// # Returns
+///
+/// - **On success**: The value parsed by `parser`
+/// - **On failure**: An [`ErrorDiagnose`] value, as parsed by the `span_parse`
 pub fn diagnose<'a, P, S, Po, E1, E2, E3>(
     mut parser: P,
-    span_parser: S,
+    span_map: S,
 ) -> impl FnMut(InStr<'a>) -> ParseResult<'a, Po, E3>
 where
     P: Parser<InStr<'a>, Po, E2>,
@@ -42,11 +57,11 @@ where
         Ok(output) => Ok(output),
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
         Err(nom::Err::Error(err)) => {
-            let errors = span_parser(err);
+            let errors = span_map(err);
             Err(nom::Err::Error(errors.into()))
         }
         Err(nom::Err::Failure(err)) => {
-            let errors = span_parser(err);
+            let errors = span_map(err);
             Err(nom::Err::Failure(errors.into()))
         }
     }
@@ -289,7 +304,7 @@ pub struct Span<'a, T> {
 impl<'a, T> Span<'a, T> {
     /// Add a hint to the span.
     ///
-    /// This can be used to provide additional context to error messages
+    /// This can be used to provide additional context to error messages/
     pub fn with_hint(mut self, hint: &'a str) -> Self {
         self.hint = Some(hint);
         self
@@ -317,6 +332,11 @@ impl<'a, T> Span<'a, T> {
 }
 
 impl<'a, T, E> Span<'a, Result<T, E>> {
+    /// Transform the [`Span`] of a [`Result`] into a [`Result`] where the error type is a [`Span`].
+    ///
+    /// This is useful if you want to do something with the [`Ok`] variant, but in case of the [`Err`] variant you want
+    /// to generate a [`ErrorDiagnose`].
+    /// An example where this comes in handy would be [`map_diagnose`].
     pub fn transform(self) -> Result<T, Span<'a, E>> {
         match self.inner {
             Ok(val) => Ok(val),
