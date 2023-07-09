@@ -52,7 +52,7 @@ fn parse_schema(
     // TODO: How to handle non empty input
     fold_many0(
         parse_type_declaration,
-        || BTreeMap::new(),
+        BTreeMap::new,
         |mut schema, (name, decl)| {
             schema.insert(name, decl);
             schema

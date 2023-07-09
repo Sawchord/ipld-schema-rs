@@ -11,7 +11,11 @@ use nom::{
     error::{Error as NomError, ParseError},
     InputTakeAtPosition, Parser,
 };
-use std::error::Error as StdError;
+use std::{
+    collections::BTreeMap,
+    error::Error as StdError,
+    ops::{Deref, DerefMut},
+};
 
 /// Intermediate result type. Similar to [`nom::IResult`], but defined over [`InStr`].
 pub type IResult<'a, T> = Result<(InStr<'a>, T), nom::Err<NomError<InStr<'a>>>>;
@@ -34,19 +38,11 @@ where
         Err(nom::Err::Incomplete(incomplete)) => Err(nom::Err::Incomplete(incomplete)),
         Err(nom::Err::Error(err)) => {
             let errors = span_parser(err);
-            Err(nom::Err::Error(ErrorDiagnose {
-                src: input.src,
-                file: input.file,
-                errors,
-            }))
+            Err(nom::Err::Error(ErrorDiagnose { errors }))
         }
         Err(nom::Err::Failure(err)) => {
             let errors = span_parser(err);
-            Err(nom::Err::Failure(ErrorDiagnose {
-                src: input.src,
-                file: input.file,
-                errors,
-            }))
+            Err(nom::Err::Failure(ErrorDiagnose { errors }))
         }
     }
 }
@@ -104,7 +100,7 @@ impl<'a> InStr<'a> {
     }
 
     // TODO: Rename to error_span
-    pub fn to_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
+    pub fn error_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
     where
         P: Fn(char) -> bool,
         E: StdError + Default,
@@ -115,6 +111,8 @@ impl<'a> InStr<'a> {
             .unwrap_or_else(|_| self.clone());
 
         Span {
+            src: span.src,
+            file: span.file,
             start: span.span_start,
             end: span.span_end,
             inner,
@@ -122,7 +120,19 @@ impl<'a> InStr<'a> {
         }
     }
 
-    // TODO: map_span
+    pub fn map<F, T>(&self, f: F) -> Span<'a, T>
+    where
+        F: Fn(&str) -> T,
+    {
+        Span {
+            src: self.src,
+            file: self.file,
+            start: self.span_start,
+            end: self.span_end,
+            inner: f(self.inner()),
+            hint: None,
+        }
+    }
 
     /// Finalize the input processing
     ///
@@ -135,9 +145,9 @@ impl<'a> InStr<'a> {
             Ok(())
         } else {
             Err(ErrorDiagnose {
-                src: self.src,
-                file: self.file,
                 errors: vec![Span {
+                    src: self.src,
+                    file: self.file,
                     start: self.span_start,
                     end: self.span_end,
                     inner: error,
@@ -159,8 +169,6 @@ pub struct ErrorDiagnose<'a, T>
 where
     T: StdError + Default,
 {
-    src: &'a str,
-    file: Option<&'a str>,
     errors: Vec<Span<'a, T>>,
 }
 
@@ -183,30 +191,37 @@ where
 
     pub fn display(&self) {
         let mut files = SimpleFiles::new();
-        let file = files.add(self.file.unwrap_or(""), self.src);
+        let mut files_map = BTreeMap::new();
 
         let writer = StandardStream::stderr(ColorChoice::Always);
         let config = codespan_reporting::term::Config::default();
+        let mut diagnostic = Diagnostic::error();
 
         for error in self.errors.iter() {
-            let label = Label::primary(file, error.start..error.end);
+            let file = files_map
+                .entry((error.file.unwrap_or(""), error.src))
+                .or_insert_with(|| files.add(error.file.unwrap_or(""), error.src));
+
+            let label = Label::primary(*file, error.start..error.end);
             let label = if let Some(hint) = error.hint {
                 label.with_message(hint)
             } else {
                 label
             };
 
-            let diagnostic = Diagnostic::error()
+            diagnostic = diagnostic
                 .with_message(error.inner.to_string())
                 .with_labels(vec![label]);
-
-            term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
         }
+
+        term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span<'a, T> {
+    src: &'a str,
+    file: Option<&'a str>,
     start: usize,
     end: usize,
     inner: T,
@@ -222,6 +237,39 @@ impl<'a, T> Span<'a, T> {
     pub fn into_inner(self) -> T {
         self.inner
     }
+
+    pub fn map<F, K>(self, f: F) -> Span<'a, K>
+    where
+        F: Fn(T) -> K,
+    {
+        Span {
+            src: self.src,
+            file: self.file,
+            start: self.start,
+            end: self.end,
+            inner: f(self.inner),
+            hint: self.hint,
+        }
+    }
 }
 
-// TODO: Deref and deref mut and map and into for span
+// TODO: Figure out how to make this work
+// impl<'a, T> From<Span<'a, T>> for T {
+//     fn from(value: Span<'a, T>) -> Self {
+//         todo!()
+//     }
+// }
+
+impl<'a, T> Deref for Span<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<'a, T> DerefMut for Span<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}

@@ -4,8 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
     character::complete::{multispace0, multispace1, space0, space1},
-    combinator::{map, map_res, opt, peek},
-    error::{make_error, Error, ErrorKind},
+    combinator::{map, opt, peek},
     multi::many1,
     sequence::tuple,
     AsChar,
@@ -36,7 +35,9 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                             EnumMemberTag::Int(_) => Err(IpldSchemaParseError::Unknown),
                             EnumMemberTag::String(name) => Ok(name.clone()),
                         })
-                        .collect::<Result<_, _>>()?;
+                        .collect::<Result<_, _>>()
+                        // FIXME
+                        .unwrap();
                     EnumRepresentation::String(tags)
                 }
                 EnumRepresentationTag::Int => {
@@ -46,7 +47,9 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                             EnumMemberTag::Int(int) => Ok(*int),
                             EnumMemberTag::String(_) => Err(IpldSchemaParseError::Unknown),
                         })
-                        .collect::<Result<_, _>>()?;
+                        .collect::<Result<_, _>>()
+                        // FIXME
+                        .unwrap();
                     EnumRepresentation::Int(tags)
                 }
             };
@@ -59,7 +62,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                 })
                 .collect();
 
-            Ok::<_, IpldSchemaParseError>(IpldType::Enum(crate::EnumType {
+            Ok(IpldType::Enum(crate::EnumType {
                 members,
                 representation,
             }))

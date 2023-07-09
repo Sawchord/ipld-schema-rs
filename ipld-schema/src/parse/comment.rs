@@ -32,7 +32,7 @@ pub(crate) fn parse_comment_block(input: InStr) -> ParseResult<String, IpldSchem
         |error| {
             vec![error
                 .input
-                .to_span(|c| true, IpldSchemaParseError::InvalidComment)]
+                .error_span(|c| true, IpldSchemaParseError::InvalidComment)]
         },
     )(input)
 }
