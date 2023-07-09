@@ -100,7 +100,7 @@ impl<'a> InStr<'a> {
     }
 
     // TODO: Rename to error_span
-    pub fn to_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
+    pub fn error_span<P, E>(&self, predicate: P, inner: E) -> Span<'a, E>
     where
         P: Fn(char) -> bool,
         E: StdError + Default,
@@ -120,7 +120,19 @@ impl<'a> InStr<'a> {
         }
     }
 
-    // TODO: map_span
+    pub fn map<F, T>(&self, f: F) -> Span<'a, T>
+    where
+        F: Fn(&str) -> T,
+    {
+        Span {
+            src: self.src,
+            file: self.file,
+            start: self.span_start,
+            end: self.span_end,
+            inner: f(self.inner()),
+            hint: None,
+        }
+    }
 
     /// Finalize the input processing
     ///
@@ -180,10 +192,10 @@ where
     pub fn display(&self) {
         let mut files = SimpleFiles::new();
         let mut files_map = BTreeMap::new();
-        //let file = files.add(self.file.unwrap_or(""), self.src);
 
         let writer = StandardStream::stderr(ColorChoice::Always);
         let config = codespan_reporting::term::Config::default();
+        let mut diagnostic = Diagnostic::error();
 
         for error in self.errors.iter() {
             let file = files_map
@@ -197,12 +209,12 @@ where
                 label
             };
 
-            let diagnostic = Diagnostic::error()
+            diagnostic = diagnostic
                 .with_message(error.inner.to_string())
                 .with_labels(vec![label]);
-
-            term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
         }
+
+        term::emit(&mut writer.lock(), &config, &files, &diagnostic).unwrap();
     }
 }
 
