@@ -1,0 +1,11 @@
+# A list that is defined using another 
+type SimpleList [String]
+
+# A list that is nullable
+type NullableList [nullable String]
+
+# A list of lists
+type ListOfLists [[String]]
+
+# A list of links
+type LinkList [&String]

@@ -10,8 +10,9 @@ use thiserror::Error;
 use crate::{
     comment::parse_comment,
     enumerate::{parse_enum, InvalidEnum},
+    list::parse_list,
     unit::parse_unit,
-    Doc, IpldSchema, IpldType, Rule, SchemaParser,
+    Doc, InlineIpldType, IpldSchema, IpldType, Rule, SchemaParser,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Error, Default)]
@@ -82,10 +83,27 @@ fn parse_type(def: Pairs<Rule>) -> Result<(String, IpldType), IpldSchemaParseErr
     assert!(outer.next().is_none());
 
     match def.as_rule() {
+        Rule::list_def => Ok((name, IpldType::List(parse_list(def.into_inner())?))),
         Rule::enum_def => Ok((name, parse_enum(def.into_inner())?)),
         Rule::link_def => Ok((name, parse_link(def.into_inner())?)),
         Rule::unit_def => Ok((name, parse_unit(def.into_inner())?)),
         _ => todo!(),
+    }
+}
+
+pub(crate) fn parse_inline_type(
+    mut tok: Pairs<Rule>,
+) -> Result<InlineIpldType, IpldSchemaParseError> {
+    let inner = tok.next().unwrap();
+    assert!(tok.next().is_none());
+
+    match inner.as_rule() {
+        Rule::type_name => Ok(InlineIpldType::Name(inner.as_str().to_string())),
+        Rule::list_def => Ok(InlineIpldType::List(Box::new(parse_list(
+            inner.into_inner(),
+        )?))),
+        Rule::link_def => todo!(),
+        _ => panic!(),
     }
 }
 

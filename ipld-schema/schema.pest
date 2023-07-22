@@ -6,7 +6,7 @@ comment_line_content = { ('A'..'Z' | 'a'..'z' | "'" | whitespace)* }
 comment              = { comment_line+ }
 
 type      = { "type" ~ whitespace+ ~ type_name ~ whitespace+ ~ type_def }
-type_name = { ('A' .. 'Z') ~ ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")* }
+type_name = { ('A' .. 'Z') ~ ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")+ }
 type_def  = {
     "bool"
   | "string"
@@ -14,10 +14,16 @@ type_def  = {
   | "float"
   | "any"
   | "bytes"
+  | list_def
   | enum_def
   | link_def
   | unit_def
 }
+
+inline_type_def = { type_name | list_def | link_def }
+
+list_def = { "[" ~ whitespace* ~ list_nullable? ~ inline_type_def ~ whitespace* ~ "]" }
+list_nullable = { "nullable" ~ whitespace* }
 
 enum_def              = { "enum" ~ whitespace* ~ "{" ~ enum_field+ ~ multispace* ~ "}" ~ (whitespace* ~ enum_repr)? }
 enum_field            = { multispace* ~ (comment)? ~ whitespace* ~ "|" ~ whitespace* ~ type_name ~ (whitespace* ~ enum_field_repr)? }

@@ -2,11 +2,13 @@
 
 mod comment;
 mod enumerate;
+mod list;
 mod parse;
 mod representation;
 mod unit;
 
 use enumerate::EnumType;
+use list::ListType;
 use pest_derive::Parser;
 use std::collections::BTreeMap;
 use unit::UnitRepresentation;
@@ -34,7 +36,7 @@ pub(crate) enum IpldType {
     Int,
     Float,
     // TODO: Map
-    // TODO: List
+    List(ListType),
     Link(String),
     // TODO: Union
     // TODO: Struct
@@ -45,9 +47,9 @@ pub(crate) enum IpldType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum InlineIpldType {
+pub(crate) enum InlineIpldType {
     Name(String),
     // TODO: Map
-    // TODO: List,
+    List(Box<ListType>),
     Link(String),
 }
