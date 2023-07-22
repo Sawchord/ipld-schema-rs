@@ -4,11 +4,9 @@ mod bytes;
 mod comment;
 mod enumerate;
 mod parse;
-mod primitives;
 mod representation;
 mod unit;
 
-use bytes::BytesRepresentation;
 use enumerate::EnumType;
 use pest_derive::Parser;
 use std::collections::BTreeMap;
@@ -33,7 +31,7 @@ pub struct IpldSchema(BTreeMap<String, Doc<IpldType>>);
 enum IpldType {
     Bool,
     String,
-    Bytes(BytesRepresentation),
+    Bytes,
     Int,
     Float,
     // TODO: Map

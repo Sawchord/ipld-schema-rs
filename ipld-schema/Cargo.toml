@@ -12,6 +12,4 @@ license = { workspace = true }
 pest = { version = "2.7.1" }
 pest_derive = { version = "2.7.1" }
 
-nom = { version = "7.1.3" }
-nom-diagnostic = { path = "../nom-diagnostic" }
 thiserror = { workspace = true }
