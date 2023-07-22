@@ -3,7 +3,8 @@
 mod bytes;
 mod comment;
 mod enumerate;
-pub(crate) mod parse;
+mod parse;
+mod primitives;
 mod representation;
 mod unit;
 

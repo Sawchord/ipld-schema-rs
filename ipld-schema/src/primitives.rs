@@ -1,5 +1,7 @@
-use super::{parse_type_name, IpldSchemaParseError};
-use crate::IpldType;
+use crate::{
+    parse::{parse_type_name, IpldSchemaParseError},
+    IpldType,
+};
 use nom::{bytes::complete::tag, character::complete::space0, combinator::map, sequence::tuple};
 use nom_diagnostic::{InStr, ParseResult};
 

@@ -1,10 +1,8 @@
-mod primitives;
-
-use self::primitives::{parse_any, parse_bool, parse_float, parse_int, parse_link, parse_string};
 use crate::{
     bytes::parse_bytes,
     comment::parse_comment_block,
     enumerate::{parse_enum, InvalidEnum},
+    primitives::{parse_any, parse_bool, parse_float, parse_int, parse_link, parse_string},
     unit::parse_unit,
     Doc, IpldSchema, IpldType,
 };
