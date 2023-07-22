@@ -1,14 +1,6 @@
 use super::{parse_type_name, IpldSchemaParseError};
-use crate::{
-    bytes::{parse_bytes_representation, BytesRepresentation},
-    IpldType,
-};
-use nom::{
-    bytes::complete::tag,
-    character::complete::space0,
-    combinator::{map, opt},
-    sequence::tuple,
-};
+use crate::IpldType;
+use nom::{bytes::complete::tag, character::complete::space0, combinator::map, sequence::tuple};
 use nom_diagnostic::{InStr, ParseResult};
 
 pub(crate) fn parse_bool(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
@@ -29,13 +21,6 @@ pub(crate) fn parse_float(input: InStr) -> ParseResult<IpldType, IpldSchemaParse
 
 pub(crate) fn parse_any(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("any"), |_| IpldType::Any)(input)
-}
-
-pub(crate) fn parse_bytes(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
-    map(
-        tuple((tag("bytes"), opt(parse_bytes_representation))),
-        |(_, repr)| IpldType::Bytes(repr.unwrap_or(BytesRepresentation::Bytes)),
-    )(input)
 }
 
 pub(crate) fn parse_link(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
@@ -88,28 +73,6 @@ mod tests {
 
         assert_eq!(
             parse_type_declaration(commented_any.into()).unwrap().1,
-            expected_result
-        );
-    }
-
-    #[test]
-    fn test_bytes_with_advances_repr() {
-        let advanced_bytes = "\
-        # These bytes are more advanced than normal bytes\n\
-        type AdvancedBytes bytes representation advanced Taste\
-        ";
-
-        let expected_doc = "These bytes are more advanced than normal bytes\n";
-        let expected_result = (
-            "AdvancedBytes".to_string(),
-            Doc {
-                doc: Some(String::from(expected_doc)),
-                ty: IpldType::Bytes(BytesRepresentation::Advanced("Taste".to_string())),
-            },
-        );
-
-        assert_eq!(
-            parse_type_declaration(advanced_bytes.into()).unwrap().1,
             expected_result
         );
     }

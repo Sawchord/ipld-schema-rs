@@ -1,10 +1,8 @@
 mod primitives;
-pub(crate) mod representation;
 
-use self::primitives::{
-    parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
-};
+use self::primitives::{parse_any, parse_bool, parse_float, parse_int, parse_link, parse_string};
 use crate::{
+    bytes::parse_bytes,
     comment::parse_comment_block,
     enumerate::{parse_enum, InvalidEnum},
     unit::parse_unit,
@@ -91,7 +89,7 @@ pub(crate) fn parse_type_declaration(
 /// - First character is a capital letter
 /// - Rest of the characters are alphanumerical or underscore
 // TODO: Diagnose
-fn parse_type_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
+pub(crate) fn parse_type_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((
             peek(take_while1(|c: char| c.is_alpha() && c.is_uppercase())),
