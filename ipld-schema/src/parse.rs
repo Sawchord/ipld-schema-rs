@@ -10,6 +10,7 @@ use thiserror::Error;
 use crate::{
     comment::parse_comment,
     enumerate::{parse_enum, InvalidEnum},
+    unit::parse_unit,
     Doc, IpldSchema, IpldType, Rule, SchemaParser,
 };
 
@@ -82,8 +83,60 @@ fn parse_type(def: Pairs<Rule>) -> Result<(String, IpldType), IpldSchemaParseErr
 
     match def.as_rule() {
         Rule::enum_def => Ok((name, parse_enum(def.into_inner())?)),
-        Rule::link_def => todo!(),
-        Rule::unit_def => todo!(),
+        Rule::link_def => Ok((name, parse_link(def.into_inner())?)),
+        Rule::unit_def => Ok((name, parse_unit(def.into_inner())?)),
         _ => todo!(),
+    }
+}
+
+fn parse_link(mut link: Pairs<Rule>) -> Result<IpldType, IpldSchemaParseError> {
+    let inner = link.next().unwrap();
+    assert!(link.next().is_none());
+    assert_eq!(inner.as_rule(), Rule::type_name);
+    Ok(IpldType::Link(inner.as_str().to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::unit::UnitRepresentation;
+
+    use super::*;
+
+    #[test]
+    fn primitives() {
+        let file = include_str!("../test/primitive.ipldsch");
+        let parsed_schema = IpldSchema::parse(file).unwrap();
+        let mut expected_schema = IpldSchema(BTreeMap::new());
+
+        expected_schema.0.insert(
+            "TestString".to_string(),
+            Doc {
+                doc: Some("This string is documented\nSkipping a line".to_string()),
+                ty: IpldType::String,
+            },
+        );
+        expected_schema.0.insert(
+            "TestInt".to_string(),
+            Doc {
+                doc: None,
+                ty: IpldType::Int,
+            },
+        );
+        expected_schema.0.insert(
+            "TestLink".to_string(),
+            Doc {
+                doc: None,
+                ty: IpldType::Link("Link".to_string()),
+            },
+        );
+        expected_schema.0.insert(
+            "NullUnit".to_string(),
+            Doc {
+                doc: None,
+                ty: IpldType::Unit(UnitRepresentation::Null),
+            },
+        );
+
+        assert_eq!(parsed_schema, expected_schema);
     }
 }
