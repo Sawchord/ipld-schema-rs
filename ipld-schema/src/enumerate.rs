@@ -18,17 +18,69 @@ pub(crate) struct EnumType {
 
 pub(crate) fn parse_enum(enu: Pairs<Rule>) -> Result<IpldType, IpldSchemaParseError> {
     let mut fields = vec![];
+    let mut repr = None;
 
     for pair in enu {
         match pair.as_rule() {
-            Rule::enum_field => fields.push(parse_enum_field(pair.into_inner())),
-            _ => panic!("Expected enum_field"),
+            Rule::enum_field => fields.push(parse_enum_field(pair.into_inner())?),
+            Rule::enum_repr => {
+                assert!(repr.is_none());
+                let mut outer = pair.into_inner();
+
+                let inner = outer.next().unwrap();
+                assert!(outer.next().is_none());
+                assert_eq!(inner.as_rule(), Rule::enum_repr_value);
+
+                repr = match inner.as_str() {
+                    "int" => Some(EnumRepresentationTag::Int),
+                    "string" => Some(EnumRepresentationTag::String),
+                    repr => {
+                        return Err(IpldSchemaParseError::Enum(
+                            InvalidEnum::InvalidRepresentation(repr.to_string()),
+                        ))
+                    }
+                };
+            }
+            _ => panic!("Expected enum_field or enum_repr"),
         }
     }
-    // TODO: Check consistency
-    // TODO: Check representation tag
 
-    todo!()
+    let mut members = vec![];
+    let representation = match repr.unwrap_or(EnumRepresentationTag::String) {
+        EnumRepresentationTag::String => {
+            let mut representation = vec![];
+            for (comment, name, repr) in fields {
+                members.push(Doc {
+                    doc: comment,
+                    ty: name,
+                });
+                let EnumMemberTag::String(val) = repr else {
+                    return Err(IpldSchemaParseError::Enum(InvalidEnum::InvalidMemberTag))
+                };
+                representation.push(val);
+            }
+            EnumRepresentation::String(representation)
+        }
+        EnumRepresentationTag::Int => {
+            let mut representation = vec![];
+            for (comment, name, repr) in fields {
+                members.push(Doc {
+                    doc: comment,
+                    ty: name,
+                });
+                let EnumMemberTag::Int(val) = repr else {
+                    return Err(IpldSchemaParseError::Enum(InvalidEnum::InvalidMemberTag))
+                };
+                representation.push(val);
+            }
+            EnumRepresentation::Int(representation)
+        }
+    };
+
+    Ok(IpldType::Enum(EnumType {
+        members,
+        representation,
+    }))
 }
 
 fn parse_enum_field(
@@ -95,7 +147,7 @@ mod tests {
         expected_schema.0.insert(
             "StatusString".to_string(),
             Doc {
-                doc: Some("Enum using string representation\n".to_string()),
+                doc: Some("Enum using string representation".to_string()),
                 ty: IpldType::Enum(EnumType {
                     members: vec![
                         Doc {
@@ -107,7 +159,7 @@ mod tests {
                             ty: "Yep".to_string(),
                         },
                         Doc {
-                            doc: Some("This variant is selfdescribing\n".to_string()),
+                            doc: Some("This variant is selfdescribing".to_string()),
                             ty: "Maybe".to_string(),
                         },
                     ],
@@ -122,7 +174,7 @@ mod tests {
         expected_schema.0.insert(
             "StatusInt".to_string(),
             Doc {
-                doc: Some("Enum using integer representation\n".to_string()),
+                doc: Some("Enum using integer representation".to_string()),
                 ty: IpldType::Enum(EnumType {
                     members: vec![
                         Doc {

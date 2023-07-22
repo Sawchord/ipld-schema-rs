@@ -1,8 +1,9 @@
 file = { SOI ~ ((type | comment) ~ multispace*)+ ~ EOI }
 
+comment_line = { whitespace* ~ "#" ~ whitespace* ~ comment_line_content ~ (newline*) }
 // TODO: Fix the values that can be contained
-comment_line = { whitespace* ~ "#" ~ ('A'..'Z' | 'a'..'z' | "'" | whitespace)* ~ (newline*) }
-comment      = { comment_line+ }
+comment_line_content = { ('A'..'Z' | 'a'..'z' | "'" | whitespace)* }
+comment              = { comment_line+ }
 
 type      = { "type" ~ whitespace+ ~ type_name ~ whitespace+ ~ type_def }
 type_name = { ('A' .. 'Z') ~ ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")* }

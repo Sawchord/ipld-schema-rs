@@ -1,0 +1,10 @@
+# This string is documented
+
+# Skipping a line
+type TestString string
+
+type TestInt int
+
+type TestLink &Link
+
+type NullUnit unit representation null
