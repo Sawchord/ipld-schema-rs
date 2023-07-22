@@ -1,7 +1,5 @@
-use super::{
-    comment::parse_comment_block, representation::parse_enum_representation, IpldSchemaParseError,
-};
-use crate::{representation::EnumRepresentation, Doc, IpldType};
+use super::{representation::parse_enum_representation, IpldSchemaParseError};
+use crate::{comment::parse_comment_block, representation::EnumRepresentation, Doc, IpldType};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},

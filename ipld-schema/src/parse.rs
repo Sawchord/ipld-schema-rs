@@ -1,17 +1,15 @@
-mod comment;
 mod enumerate;
 mod primitives;
 mod representation;
 
 use self::{
-    comment::parse_comment_block,
     enumerate::parse_enum,
     primitives::{
         parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
         parse_unit,
     },
 };
-use crate::{Doc, IpldSchema, IpldType};
+use crate::{comment::parse_comment_block, Doc, IpldSchema, IpldType};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},

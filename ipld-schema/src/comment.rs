@@ -7,7 +7,7 @@ use nom::{
 };
 use nom_diagnostic::{diagnose, IResult, InStr, ParseResult};
 
-use super::IpldSchemaParseError;
+use crate::parse::IpldSchemaParseError;
 
 /// Parses a single line of comments that begins with `##` and ends with a newline
 fn parse_comment_line(input: InStr) -> IResult<InStr> {
