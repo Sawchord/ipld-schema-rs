@@ -1,6 +1,5 @@
 #![allow(dead_code, unused_variables)]
 
-mod bytes;
 mod comment;
 mod enumerate;
 mod parse;
@@ -28,7 +27,7 @@ struct Doc<T> {
 pub struct IpldSchema(BTreeMap<String, Doc<IpldType>>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum IpldType {
+pub(crate) enum IpldType {
     Bool,
     String,
     Bytes,

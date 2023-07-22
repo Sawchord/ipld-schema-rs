@@ -12,4 +12,5 @@ license = { workspace = true }
 pest = { version = "2.7.1" }
 pest_derive = { version = "2.7.1" }
 
+itertools = { version = "0.11.0" }
 thiserror = { workspace = true }
