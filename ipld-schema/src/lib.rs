@@ -2,11 +2,13 @@
 
 mod bytes;
 mod comment;
+mod enumerate;
 pub(crate) mod parse;
 mod representation;
 
 use bytes::BytesRepresentation;
-use representation::{EnumRepresentation, UnitRepresentation};
+use enumerate::EnumType;
+use representation::UnitRepresentation;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,12 +38,6 @@ enum IpldType {
     Unit(UnitRepresentation),
     Any,
     Copy(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct EnumType {
-    members: Vec<Doc<String>>,
-    representation: EnumRepresentation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

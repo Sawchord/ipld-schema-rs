@@ -1,5 +1,4 @@
-use super::{representation::parse_enum_representation, IpldSchemaParseError};
-use crate::{comment::parse_comment_block, representation::EnumRepresentation, Doc, IpldType};
+use crate::{comment::parse_comment_block, parse::IpldSchemaParseError, Doc, IpldType};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
@@ -9,7 +8,22 @@ use nom::{
     sequence::tuple,
     AsChar,
 };
-use nom_diagnostic::{map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
+use nom_diagnostic::{diagnose, map_diagnose, span, ErrorDiagnose, InStr, ParseResult, Span};
+use thiserror::Error;
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum InvalidEnum {
+    #[error("Enum representation must either be \"int\" or \"string\", found \"{0}\"")]
+    InvalidRepresentation(String),
+    #[error("Enum member tag does not match representation")]
+    InvalidMemberTag,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct EnumType {
+    members: Vec<Doc<String>>,
+    representation: EnumRepresentation,
+}
 
 pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map_diagnose(
@@ -38,9 +52,9 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                         .map(|enum_member| {
                             enum_member
                                 .map(|(_, _, tag)| match tag {
-                                    EnumMemberTag::Int(_) => {
-                                        Err(IpldSchemaParseError::InvalidEnumMemberTag)
-                                    }
+                                    EnumMemberTag::Int(_) => Err(IpldSchemaParseError::Enum(
+                                        InvalidEnum::InvalidMemberTag,
+                                    )),
                                     EnumMemberTag::String(name) => Ok(name),
                                 })
                                 .with_hint(
@@ -62,9 +76,9 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                             enum_member
                                 .map(|(_, _, tag)| match tag {
                                     EnumMemberTag::Int(int) => Ok(int),
-                                    EnumMemberTag::String(_) => {
-                                        Err(IpldSchemaParseError::InvalidEnumMemberTag)
-                                    }
+                                    EnumMemberTag::String(_) => Err(IpldSchemaParseError::Enum(
+                                        InvalidEnum::InvalidMemberTag,
+                                    )),
                                 })
                                 .with_hint(
                                     "enum member tag is a string but representation is an integer",
@@ -86,7 +100,7 @@ pub(crate) fn parse_enum(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
                 })
                 .collect();
 
-            Ok::<_, ErrorDiagnose<'_, _>>(IpldType::Enum(crate::EnumType {
+            Ok::<_, ErrorDiagnose<'_, _>>(IpldType::Enum(EnumType {
                 members,
                 representation,
             }))
@@ -155,12 +169,6 @@ fn parse_enum_member_tag(input: InStr) -> ParseResult<EnumMemberTag, IpldSchemaP
     )(input)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum EnumRepresentationTag {
-    Int,
-    String,
-}
-
 fn parse_enum_member_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((
@@ -171,14 +179,59 @@ fn parse_enum_member_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseErr
     )(input)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum EnumRepresentation {
+    String(Vec<String>),
+    Int(Vec<i128>),
+}
+
+fn parse_enum_representation(
+    input: InStr,
+) -> ParseResult<Span<EnumRepresentationTag>, IpldSchemaParseError> {
+    span(map(
+        tuple((
+            space1,
+            tag("representation"),
+            space1,
+            diagnose(
+                alt((
+                    map(tag("int"), |_| EnumRepresentationTag::Int),
+                    map(tag("string"), |_| EnumRepresentationTag::String),
+                )),
+                |error: nom::error::Error<_>| {
+                    error
+                        .input
+                        .error_span(
+                            |c| !c.is_alphanumeric(),
+                            |name| {
+                                IpldSchemaParseError::Enum(InvalidEnum::InvalidRepresentation(
+                                    name.to_string(),
+                                ))
+                            },
+                        )
+                        .with_hint("this is not a valid value")
+                },
+            ),
+        )),
+        |(_, _, _, tag)| tag,
+    ))(input)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum EnumRepresentationTag {
+    Int,
+    String,
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{representation::EnumRepresentation, Doc, EnumType, IpldSchema, IpldType};
+    use super::*;
+    use crate::{Doc, IpldSchema, IpldType};
     use std::collections::BTreeMap;
 
     #[test]
     fn test_enum_parse() {
-        let file = include_str!("../../test/enums.ipldsch");
+        let file = include_str!("../test/enums.ipldsch");
 
         let parsed_schema = IpldSchema::parse(file).unwrap();
         let mut expected_schema = IpldSchema(BTreeMap::new());

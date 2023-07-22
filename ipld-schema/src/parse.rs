@@ -1,15 +1,15 @@
-mod enumerate;
 mod primitives;
 pub(crate) mod representation;
 
-use self::{
-    enumerate::parse_enum,
-    primitives::{
-        parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
-        parse_unit,
-    },
+use self::primitives::{
+    parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
+    parse_unit,
 };
-use crate::{comment::parse_comment_block, Doc, IpldSchema, IpldType};
+use crate::{
+    comment::parse_comment_block,
+    enumerate::{parse_enum, InvalidEnum},
+    Doc, IpldSchema, IpldType,
+};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till1, take_while1},
@@ -27,10 +27,8 @@ use thiserror::Error;
 pub enum IpldSchemaParseError {
     #[error("Parsing error in comment block")]
     InvalidComment,
-    #[error("Enum representation must either be \"int\" or \"string\", found \"{0}\"")]
-    InvalidEnumRepresentation(String),
-    #[error("Enum member tag does not match representation")]
-    InvalidEnumMemberTag,
+    #[error("{0}")]
+    Enum(InvalidEnum),
     #[default]
     #[error("Unknown error")]
     Unknown,

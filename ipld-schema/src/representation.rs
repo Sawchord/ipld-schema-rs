@@ -25,12 +25,6 @@ pub(crate) enum ListRepresentation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, EnumString)]
-pub(crate) enum EnumRepresentation {
-    String(Vec<String>),
-    Int(Vec<i128>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Display, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub(crate) enum UnitRepresentation {
     Null,
