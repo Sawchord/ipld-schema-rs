@@ -180,7 +180,7 @@ fn parse_enum_member_name(input: InStr) -> ParseResult<InStr, IpldSchemaParseErr
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum EnumRepresentation {
+pub enum EnumRepresentation {
     String(Vec<String>),
     Int(Vec<i128>),
 }

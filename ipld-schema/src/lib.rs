@@ -5,11 +5,12 @@ mod comment;
 mod enumerate;
 pub(crate) mod parse;
 mod representation;
+mod unit;
 
 use bytes::BytesRepresentation;
 use enumerate::EnumType;
-use representation::UnitRepresentation;
 use std::collections::BTreeMap;
+use unit::UnitRepresentation;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Doc<T> {

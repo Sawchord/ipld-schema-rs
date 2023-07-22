@@ -1,3 +1,4 @@
+use super::{parse_type_name, IpldSchemaParseError};
 use crate::{
     bytes::{parse_bytes_representation, BytesRepresentation},
     IpldType,
@@ -9,8 +10,6 @@ use nom::{
     sequence::tuple,
 };
 use nom_diagnostic::{InStr, ParseResult};
-
-use super::{parse_type_name, representation::parse_unit_representation, IpldSchemaParseError};
 
 pub(crate) fn parse_bool(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("bool"), |_| IpldType::Bool)(input)
@@ -46,17 +45,10 @@ pub(crate) fn parse_link(input: InStr) -> ParseResult<IpldType, IpldSchemaParseE
     )(input)
 }
 
-pub(crate) fn parse_unit(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
-    map(
-        tuple((tag("unit"), parse_unit_representation)),
-        |(_, repr)| IpldType::Unit(repr),
-    )(input)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{parse::parse_type_declaration, representation::UnitRepresentation, Doc};
+    use crate::{parse::parse_type_declaration, Doc};
 
     #[test]
     fn test_bool_declaration_uncommented() {
@@ -135,22 +127,6 @@ mod tests {
         assert_eq!(
             parse_type_declaration(link.into()).unwrap().1,
             expected_result
-        );
-    }
-
-    #[test]
-    fn test_unit() {
-        let unit = "type MyUnit unit representation true";
-        let expexted_result = (
-            "MyUnit".to_string(),
-            Doc {
-                doc: None,
-                ty: IpldType::Unit(UnitRepresentation::True),
-            },
-        );
-        assert_eq!(
-            parse_type_declaration(unit.into()).unwrap().1,
-            expexted_result
         );
     }
 }

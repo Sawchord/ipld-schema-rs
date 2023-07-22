@@ -3,11 +3,11 @@ pub(crate) mod representation;
 
 use self::primitives::{
     parse_any, parse_bool, parse_bytes, parse_float, parse_int, parse_link, parse_string,
-    parse_unit,
 };
 use crate::{
     comment::parse_comment_block,
     enumerate::{parse_enum, InvalidEnum},
+    unit::parse_unit,
     Doc, IpldSchema, IpldType,
 };
 use nom::{
@@ -60,7 +60,7 @@ fn parse_schema(
 }
 
 /// Parses a complete type declaration, i.e. the type name and the type definiton
-fn parse_type_declaration(
+pub(crate) fn parse_type_declaration(
     input: InStr,
 ) -> ParseResult<(String, Doc<IpldType>), IpldSchemaParseError> {
     map(
