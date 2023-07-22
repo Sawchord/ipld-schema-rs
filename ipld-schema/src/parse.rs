@@ -85,7 +85,7 @@ fn parse_type(def: Pairs<Rule>) -> Result<(String, IpldType), IpldSchemaParseErr
     match def.as_rule() {
         Rule::list_def => Ok((name, IpldType::List(parse_list(def.into_inner())?))),
         Rule::enum_def => Ok((name, parse_enum(def.into_inner())?)),
-        Rule::link_def => Ok((name, parse_link(def.into_inner())?)),
+        Rule::link_def => Ok((name, IpldType::Link(parse_link(def.into_inner())?))),
         Rule::unit_def => Ok((name, parse_unit(def.into_inner())?)),
         _ => todo!(),
     }
@@ -102,16 +102,16 @@ pub(crate) fn parse_inline_type(
         Rule::list_def => Ok(InlineIpldType::List(Box::new(parse_list(
             inner.into_inner(),
         )?))),
-        Rule::link_def => todo!(),
+        Rule::link_def => Ok(InlineIpldType::Link(parse_link(inner.into_inner())?)),
         _ => panic!(),
     }
 }
 
-fn parse_link(mut link: Pairs<Rule>) -> Result<IpldType, IpldSchemaParseError> {
+fn parse_link(mut link: Pairs<Rule>) -> Result<String, IpldSchemaParseError> {
     let inner = link.next().unwrap();
     assert!(link.next().is_none());
     assert_eq!(inner.as_rule(), Rule::type_name);
-    Ok(IpldType::Link(inner.as_str().to_string()))
+    Ok(inner.as_str().to_string())
 }
 
 #[cfg(test)]

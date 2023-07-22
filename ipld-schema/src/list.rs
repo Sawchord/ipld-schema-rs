@@ -29,7 +29,7 @@ pub(crate) fn parse_list(mut list: Pairs<Rule>) -> Result<ListType, IpldSchemaPa
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::IpldSchema;
+    use crate::{Doc, IpldSchema, IpldType};
     use std::collections::BTreeMap;
 
     #[test]
@@ -38,5 +38,51 @@ mod tests {
 
         let parsed_schema = IpldSchema::parse(file).unwrap();
         let mut expected_schema = IpldSchema(BTreeMap::new());
+
+        expected_schema.0.insert(
+            "SimpleList".to_string(),
+            Doc {
+                doc: Some("A list that is defined using another".to_string()),
+                ty: IpldType::List(ListType {
+                    ty: InlineIpldType::Name("String".to_string()),
+                    nullable: false,
+                }),
+            },
+        );
+        expected_schema.0.insert(
+            "NullableList".to_string(),
+            Doc {
+                doc: Some("A list that is nullable".to_string()),
+                ty: IpldType::List(ListType {
+                    ty: InlineIpldType::Name("String".to_string()),
+                    nullable: true,
+                }),
+            },
+        );
+        expected_schema.0.insert(
+            "ListOfLists".to_string(),
+            Doc {
+                doc: Some("A list of lists".to_string()),
+                ty: IpldType::List(ListType {
+                    ty: InlineIpldType::List(Box::new(ListType {
+                        ty: InlineIpldType::Name("String".to_string()),
+                        nullable: false,
+                    })),
+                    nullable: false,
+                }),
+            },
+        );
+        expected_schema.0.insert(
+            "LinkList".to_string(),
+            Doc {
+                doc: Some("A list of links".to_string()),
+                ty: IpldType::List(ListType {
+                    ty: InlineIpldType::Link("String".to_string()),
+                    nullable: false,
+                }),
+            },
+        );
+
+        assert_eq!(parsed_schema, expected_schema);
     }
 }
