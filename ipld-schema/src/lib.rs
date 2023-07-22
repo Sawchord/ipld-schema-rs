@@ -41,4 +41,10 @@ struct EnumType {
     representation: EnumRepresentation,
 }
 
-// TODO: InlineIpldType (Name, List Map, Link)
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum InlineIpldType {
+    Name(String),
+    // TODO: Map
+    // TODO: List,
+    Link(String),
+}
