@@ -1,12 +1,6 @@
 use strum_macros::{Display, EnumString};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum BytesRepresentation {
-    Bytes,
-    Advanced(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum StructRepresentation {
     Map,
     Tuple,
@@ -23,8 +17,6 @@ pub(crate) enum MapRepresentation {
     ListPairs,
     Advanced(String),
 }
-
-// TODO: Define UnitRepresentation
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ListRepresentation {

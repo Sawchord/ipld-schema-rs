@@ -1,4 +1,4 @@
-use crate::representation::{BytesRepresentation, UnitRepresentation};
+use crate::representation::UnitRepresentation;
 
 use super::{enumerate::EnumRepresentationTag, parse_type_name, IpldSchemaParseError};
 use nom::{
@@ -6,26 +6,6 @@ use nom::{
     sequence::tuple,
 };
 use nom_diagnostic::{diagnose, span, InStr, ParseResult, Span};
-
-// TODO: Diagnose
-pub(super) fn parse_bytes_representation(
-    input: InStr,
-) -> ParseResult<BytesRepresentation, IpldSchemaParseError> {
-    map(
-        tuple((
-            space1,
-            tag("representation"),
-            space1,
-            alt((
-                map(parse_advanced, |advanced| {
-                    BytesRepresentation::Advanced(advanced.to_string())
-                }),
-                map(tag("bytes"), |_| BytesRepresentation::Bytes),
-            )),
-        )),
-        |(_, _, _, repr)| repr,
-    )(input)
-}
 
 pub(super) fn parse_enum_representation(
     input: InStr,
@@ -77,7 +57,7 @@ pub(super) fn parse_unit_representation(
     )(input)
 }
 
-fn parse_advanced(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
+pub(crate) fn parse_advanced(input: InStr) -> ParseResult<InStr, IpldSchemaParseError> {
     map(
         tuple((tag("advanced"), space1, parse_type_name)),
         |(_, _, name)| name,

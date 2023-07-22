@@ -1,10 +1,12 @@
 #![allow(dead_code, unused_variables)]
 
+mod bytes;
 mod comment;
-mod parse;
+pub(crate) mod parse;
 mod representation;
 
-use representation::{BytesRepresentation, EnumRepresentation, UnitRepresentation};
+use bytes::BytesRepresentation;
+use representation::{EnumRepresentation, UnitRepresentation};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 mod enumerate;
 mod primitives;
-mod representation;
+pub(crate) mod representation;
 
 use self::{
     enumerate::parse_enum,

@@ -1,4 +1,7 @@
-use crate::{representation::BytesRepresentation, IpldType};
+use crate::{
+    bytes::{parse_bytes_representation, BytesRepresentation},
+    IpldType,
+};
 use nom::{
     bytes::complete::tag,
     character::complete::space0,
@@ -7,11 +10,7 @@ use nom::{
 };
 use nom_diagnostic::{InStr, ParseResult};
 
-use super::{
-    parse_type_name,
-    representation::{parse_bytes_representation, parse_unit_representation},
-    IpldSchemaParseError,
-};
+use super::{parse_type_name, representation::parse_unit_representation, IpldSchemaParseError};
 
 pub(crate) fn parse_bool(input: InStr) -> ParseResult<IpldType, IpldSchemaParseError> {
     map(tag("bool"), |_| IpldType::Bool)(input)
