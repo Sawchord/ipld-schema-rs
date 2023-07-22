@@ -10,8 +10,13 @@ mod unit;
 
 use bytes::BytesRepresentation;
 use enumerate::EnumType;
+use pest_derive::Parser;
 use std::collections::BTreeMap;
 use unit::UnitRepresentation;
+
+#[derive(Parser)]
+#[grammar = "schema.pest"]
+pub struct SchemaParser;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Doc<T> {

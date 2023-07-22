@@ -1,0 +1,18 @@
+file      = { SOI ~ (type ~ multispace*)+ ~ EOI }
+type      = { "type" ~ whitespace+ ~ type_name ~ whitespace+ ~ type_def }
+type_name = { ('A' .. 'Z') ~ ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")* }
+type_def  = {
+    enum_def
+  | "string"
+}
+
+enum_def              = { "enum" ~ whitespace* ~ "{" ~ enum_field+ ~ multispace* ~ "}" ~ (whitespace* ~ enum_repr)? }
+enum_field            = { multispace* ~ "|" ~ whitespace* ~ type_name ~ (whitespace* ~ enum_field_repr) }
+enum_field_repr       = { "(\"" ~ enum_field_repr_value ~ "\")" }
+enum_field_repr_value = { (('A' .. 'Z') ~ ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")* | ('0'..'9')*) }
+enum_repr             = { "representation" ~ whitespace* ~ enum_repr_value }
+enum_repr_value       = { "int" | "string" }
+
+multispace = _{ newline | whitespace }
+newline    = _{ "\n" | "\r\n" }
+whitespace = _{ " " | "\t" }

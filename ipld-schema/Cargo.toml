@@ -9,10 +9,9 @@ categories = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
+pest = { version = "2.7.1" }
+pest_derive = { version = "2.7.1" }
+
 nom = { version = "7.1.3" }
-
 nom-diagnostic = { path = "../nom-diagnostic" }
-
-strum = { version = "0.24.1" }
-strum_macros = { version = "0.24.3" }
 thiserror = { workspace = true }

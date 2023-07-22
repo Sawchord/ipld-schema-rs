@@ -2,7 +2,6 @@
 
 members = [
     "ipld-schema",
-    "ipld-schema-convert",
     "nom-diagnostic"
 ]
 
