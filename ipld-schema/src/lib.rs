@@ -51,7 +51,7 @@ pub(crate) enum IpldType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum InlineIpldType {
     Name(String),
-    // TODO: Map
     List(Box<ListType>),
+    Map(Box<MapType>),
     Link(String),
 }

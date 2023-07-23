@@ -104,6 +104,9 @@ pub(crate) fn parse_inline_type(
         Rule::list_def => Ok(InlineIpldType::List(Box::new(parse_list(
             inner.into_inner(),
         )?))),
+        Rule::map_def => Ok(InlineIpldType::Map(Box::new(parse_map(
+            inner.into_inner(),
+        )?))),
         Rule::link_def => Ok(InlineIpldType::Link(parse_link(inner.into_inner())?)),
         _ => panic!(),
     }

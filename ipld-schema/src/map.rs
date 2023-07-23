@@ -7,10 +7,10 @@ use pest::iterators::Pairs;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MapType {
-    key: String,
-    value: InlineIpldType,
-    nullable: bool,
-    repr: MapRepresentation,
+    pub(crate) key: String,
+    pub(crate) value: InlineIpldType,
+    pub(crate) nullable: bool,
+    pub(crate) repr: MapRepresentation,
 }
 
 pub(crate) fn parse_map(mut map: Pairs<Rule>) -> Result<MapType, IpldSchemaParseError> {
@@ -45,7 +45,7 @@ pub(crate) fn parse_map(mut map: Pairs<Rule>) -> Result<MapType, IpldSchemaParse
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum MapRepresentation {
+pub(crate) enum MapRepresentation {
     Map,
     StringPairs(StringPairs),
     ListPairs,

@@ -21,7 +21,7 @@ type_def  = {
   | unit_def
 }
 
-inline_type_def = { type_name | list_def | link_def }
+inline_type_def = { type_name | list_def | map_def | link_def }
 
 list_def      = { "[" ~ whitespace* ~ list_nullable? ~ inline_type_def ~ whitespace* ~ "]" }
 list_nullable = { "nullable" ~ whitespace* }

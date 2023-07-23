@@ -9,3 +9,6 @@ type ListOfLists [[String]]
 
 # A list of links
 type LinkList [&String]
+
+# A list of maps
+type MapList [{Next: &Link}]

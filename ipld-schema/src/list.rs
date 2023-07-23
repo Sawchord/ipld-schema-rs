@@ -29,7 +29,10 @@ pub(crate) fn parse_list(mut list: Pairs<Rule>) -> Result<ListType, IpldSchemaPa
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Doc, IpldSchema, IpldType};
+    use crate::{
+        map::{MapRepresentation, MapType},
+        Doc, IpldSchema, IpldType,
+    };
     use std::collections::BTreeMap;
 
     #[test]
@@ -78,6 +81,21 @@ mod tests {
                 doc: Some("A list of links".to_string()),
                 ty: IpldType::List(ListType {
                     ty: InlineIpldType::Link("String".to_string()),
+                    nullable: false,
+                }),
+            },
+        );
+        expected_schema.0.insert(
+            "MapList".to_string(),
+            Doc {
+                doc: Some("A list of maps".to_string()),
+                ty: IpldType::List(ListType {
+                    ty: InlineIpldType::Map(Box::new(MapType {
+                        key: "Next".to_string(),
+                        value: InlineIpldType::Link("Link".to_string()),
+                        nullable: false,
+                        repr: MapRepresentation::Map,
+                    })),
                     nullable: false,
                 }),
             },
