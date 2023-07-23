@@ -1,4 +1,7 @@
+use pest::iterators::Pairs;
 use thiserror::Error;
+
+use crate::Rule;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error, Default)]
 pub enum RepresentationParseError {
@@ -20,15 +23,6 @@ pub(crate) enum StructRepresentation {
     Advanced(String),
 }
 
-// TODO: Move to map file
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum MapRepresentation {
-    Map,
-    StringPairs(StringPairs),
-    ListPairs,
-    Advanced(String),
-}
-
 // TODO: Move to list file
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ListRepresentation {
@@ -40,11 +34,14 @@ pub(crate) enum ListRepresentation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct StringJoin(String);
 
-// TODO: Parser
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct StringPairs {
     inner_delim: String,
     entry_delim: String,
+}
+
+pub(crate) fn parse_string_pairs(pair: Pairs<Rule>) -> StringPairs {
+    todo!()
 }
 
 // TODO: Parser

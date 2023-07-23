@@ -3,12 +3,14 @@
 mod comment;
 mod enumerate;
 mod list;
+mod map;
 mod parse;
 mod representation;
 mod unit;
 
 use enumerate::EnumType;
 use list::ListType;
+use map::MapType;
 use pest_derive::Parser;
 use std::collections::BTreeMap;
 use unit::UnitRepresentation;
@@ -35,8 +37,8 @@ pub(crate) enum IpldType {
     Bytes,
     Int,
     Float,
-    // TODO: Map
     List(ListType),
+    Map(MapType),
     Link(String),
     // TODO: Union
     // TODO: Struct

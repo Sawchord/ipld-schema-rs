@@ -1,0 +1,17 @@
+# A simple map that maps one type to another
+type SimpleMap {Int : Float}
+
+# A composite type that maps one type to a Link that is also nullable
+type NullableLink {String : nullable &Any}
+
+# A composite type that maps a String to a list of Strings
+type MapOfLists {String:[nullable String]}
+
+# A map that is internally represented as  a list of pairs
+type ListPairs {Int: &Bool} representation listpairs
+
+# A map that is represented as a String
+type MountOptions {String:String} representation stringpairs {
+  innerDelim "="
+  entryDelim ","
+}

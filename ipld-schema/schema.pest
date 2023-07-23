@@ -15,6 +15,7 @@ type_def  = {
   | "any"
   | "bytes"
   | list_def
+  | map_def
   | enum_def
   | link_def
   | unit_def
@@ -22,11 +23,16 @@ type_def  = {
 
 inline_type_def = { type_name | list_def | link_def }
 
-list_def = { "[" ~ whitespace* ~ list_nullable? ~ inline_type_def ~ whitespace* ~ "]" }
+list_def      = { "[" ~ whitespace* ~ list_nullable? ~ inline_type_def ~ whitespace* ~ "]" }
 list_nullable = { "nullable" ~ whitespace* }
 
+map_def        = { "{" ~ whitespace* ~ type_name ~ whitespace* ~ ":" ~ whitespace* ~ map_nullable? ~ inline_type_def ~ whitespace* ~ "}" ~ (whitespace+ ~ map_repr)? }
+map_nullable   = { "nullable" ~ whitespace* }
+map_repr       = { "representation" ~ whitespace+ ~ map_repr_value }
+map_repr_value = { "map" | "listpairs" | stringpairs_repr }
+
 enum_def              = { "enum" ~ whitespace* ~ "{" ~ enum_field+ ~ multispace* ~ "}" ~ (whitespace* ~ enum_repr)? }
-enum_field            = { multispace* ~ (comment)? ~ whitespace* ~ "|" ~ whitespace* ~ type_name ~ (whitespace* ~ enum_field_repr)? }
+enum_field            = { multispace* ~ (comment)? ~ whitespace* ~ "|" ~ whitespace* ~ type_name ~ (whitespace+ ~ enum_field_repr)? }
 enum_field_repr       = { "(\"" ~ enum_field_repr_value ~ "\")" }
 enum_field_repr_value = { (('A' .. 'Z') ~ ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")* | ('0'..'9')*) }
 enum_repr             = { "representation" ~ whitespace+ ~ enum_repr_value }
@@ -36,6 +42,13 @@ link_def = { "&" ~ whitespace* ~ type_name }
 
 unit_def  = { "unit" ~ whitespace+ ~ "representation" ~ whitespace+ ~ unit_repr }
 unit_repr = { "null" | "true" | "false" | "emptymap" }
+
+stringpairs_repr         = { "stringpairs" ~ whitespace* ~ "{" ~ stringpairs_repr_content ~ multispace* ~ "}" }
+stringpairs_repr_content = { multispace* ~ stringpairs_repr_inner ~ multispace* ~ stringpairs_repr_entry }
+stringpairs_repr_inner   = { "innerDelim" ~ whitespace+ ~ "\"" ~ stringpairs_repr_value ~ "\"" }
+stringpairs_repr_entry   = { "entryDelim" ~ whitespace+ ~ "\"" ~ stringpairs_repr_value ~ "\"" }
+// TODO: Fix this to use actually all characters
+stringpairs_repr_value   = { ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_" | "=" | ",")* }
 
 multispace = _{ newline | whitespace }
 newline    = _{ "\n" | "\r\n" }
