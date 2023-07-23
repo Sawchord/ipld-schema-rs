@@ -73,7 +73,7 @@ fn parse_map_representation(mut repr: Pairs<Rule>) -> MapRepresentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::IpldSchema;
+    use crate::{list::ListType, IpldSchema, IpldType};
     use std::collections::BTreeMap;
 
     #[test]
@@ -82,6 +82,69 @@ mod tests {
 
         let parsed_schema = IpldSchema::parse(file).unwrap();
         let mut expected_schema = IpldSchema(BTreeMap::new());
+
+        expected_schema.0.insert(
+            "SimpleMap".to_string(),
+            crate::Doc {
+                doc: Some("A simple map that maps one type to another".to_string()),
+                ty: IpldType::Map(MapType {
+                    key: "Int".to_string(),
+                    value: InlineIpldType::Name("Float".to_string()),
+                    nullable: false,
+                    repr: MapRepresentation::Map,
+                }),
+            },
+        );
+
+        expected_schema.0.insert(
+            "NullableLink".to_string(),
+            crate::Doc {
+                doc: Some(
+                    "A composite type that maps one type to a Link that is also nullable"
+                        .to_string(),
+                ),
+                ty: IpldType::Map(MapType {
+                    key: "String".to_string(),
+                    value: InlineIpldType::Link("Any".to_string()),
+                    nullable: true,
+                    repr: MapRepresentation::Map,
+                }),
+            },
+        );
+
+        expected_schema.0.insert(
+            "MapOfLists".to_string(),
+            crate::Doc {
+                doc: Some(
+                    "A composite map that is internally rerpesented as a pair of lists".to_string(),
+                ),
+                ty: IpldType::Map(MapType {
+                    key: "String".to_string(),
+                    value: InlineIpldType::List(Box::new(ListType {
+                        ty: InlineIpldType::Name("Bool".to_string()),
+                        nullable: true,
+                    })),
+                    nullable: false,
+                    repr: MapRepresentation::ListPairs,
+                }),
+            },
+        );
+
+        expected_schema.0.insert(
+            "MountOptions".to_string(),
+            crate::Doc {
+                doc: Some("A map that is represented as a String".to_string()),
+                ty: IpldType::Map(MapType {
+                    key: "String".to_string(),
+                    value: InlineIpldType::Name("String".to_string()),
+                    nullable: false,
+                    repr: MapRepresentation::StringPairs(StringPairs {
+                        inner_delim: "=".to_string(),
+                        entry_delim: ",".to_string(),
+                    }),
+                }),
+            },
+        );
 
         assert_eq!(parsed_schema, expected_schema);
     }

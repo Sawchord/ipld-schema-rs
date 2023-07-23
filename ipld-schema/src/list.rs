@@ -6,8 +6,8 @@ use pest::iterators::Pairs;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ListType {
-    ty: InlineIpldType,
-    nullable: bool,
+    pub(crate) ty: InlineIpldType,
+    pub(crate) nullable: bool,
 }
 
 pub(crate) fn parse_list(mut list: Pairs<Rule>) -> Result<ListType, IpldSchemaParseError> {
