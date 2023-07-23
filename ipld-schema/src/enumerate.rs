@@ -1,4 +1,4 @@
-use crate::{comment::parse_comment, parse::IpldSchemaParseError, Doc, IpldType, Rule};
+use crate::{comment::parse_comment, parse::IpldSchemaParseError, Doc, Rule};
 use pest::iterators::Pairs;
 use thiserror::Error;
 
@@ -16,7 +16,7 @@ pub(crate) struct EnumType {
     representation: EnumRepresentation,
 }
 
-pub(crate) fn parse_enum(enu: Pairs<Rule>) -> Result<IpldType, IpldSchemaParseError> {
+pub(crate) fn parse_enum(enu: Pairs<Rule>) -> Result<EnumType, IpldSchemaParseError> {
     let mut fields = vec![];
     let mut repr = None;
 
@@ -77,10 +77,10 @@ pub(crate) fn parse_enum(enu: Pairs<Rule>) -> Result<IpldType, IpldSchemaParseEr
         }
     };
 
-    Ok(IpldType::Enum(EnumType {
+    Ok(EnumType {
         members,
         representation,
-    }))
+    })
 }
 
 fn parse_enum_field(

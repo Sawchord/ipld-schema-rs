@@ -86,7 +86,7 @@ fn parse_type(def: Pairs<Rule>) -> Result<(String, IpldType), IpldSchemaParseErr
     match def.as_rule() {
         Rule::list_def => Ok((name, IpldType::List(parse_list(def.into_inner())?))),
         Rule::map_def => Ok((name, IpldType::Map(parse_map(def.into_inner())?))),
-        Rule::enum_def => Ok((name, parse_enum(def.into_inner())?)),
+        Rule::enum_def => Ok((name, IpldType::Enum(parse_enum(def.into_inner())?))),
         Rule::link_def => Ok((name, IpldType::Link(parse_link(def.into_inner())?))),
         Rule::unit_def => Ok((name, parse_unit(def.into_inner())?)),
         _ => todo!(),
