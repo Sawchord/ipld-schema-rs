@@ -1,4 +1,4 @@
-use crate::{comment::parse_comment, parse::IpldSchemaParseError, Doc, Rule};
+use crate::{comment::parse_comment, parse::IpldSchemaParseError, Rule};
 use pest::iterators::Pairs;
 use thiserror::Error;
 
@@ -12,81 +12,40 @@ pub enum InvalidEnum {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EnumType {
-    members: Vec<Doc<String>>,
-    representation: EnumRepresentation,
+    members: Vec<EnumField>,
+    repr: EnumRepresentation,
 }
 
 pub(crate) fn parse_enum(enu: Pairs<Rule>) -> Result<EnumType, IpldSchemaParseError> {
-    let mut fields = vec![];
+    let mut members = vec![];
     let mut repr = None;
 
     for pair in enu {
         match pair.as_rule() {
-            Rule::enum_field => fields.push(parse_enum_field(pair.into_inner())?),
+            Rule::enum_field => members.push(parse_enum_field(pair.into_inner())?),
             Rule::enum_repr => {
                 assert!(repr.is_none());
-                let mut outer = pair.into_inner();
-
-                let inner = outer.next().unwrap();
-                assert!(outer.next().is_none());
-                assert_eq!(inner.as_rule(), Rule::enum_repr_value);
-
-                repr = match inner.as_str() {
-                    "int" => Some(EnumRepresentationTag::Int),
-                    "string" => Some(EnumRepresentationTag::String),
-                    repr => {
-                        return Err(IpldSchemaParseError::Enum(
-                            InvalidEnum::InvalidRepresentation(repr.to_string()),
-                        ))
-                    }
-                };
+                repr = Some(parse_enum_representation(pair.into_inner()));
             }
             _ => panic!("Expected enum_field or enum_repr"),
         }
     }
 
-    let mut members = vec![];
-    let representation = match repr.unwrap_or(EnumRepresentationTag::String) {
-        EnumRepresentationTag::String => {
-            let mut representation = vec![];
-            for (comment, name, repr) in fields {
-                members.push(Doc {
-                    doc: comment,
-                    ty: name,
-                });
-                let EnumMemberTag::String(val) = repr else {
-                    return Err(IpldSchemaParseError::Enum(InvalidEnum::InvalidMemberTag))
-                };
-                representation.push(val);
-            }
-            EnumRepresentation::String(representation)
-        }
-        EnumRepresentationTag::Int => {
-            let mut representation = vec![];
-            for (comment, name, repr) in fields {
-                members.push(Doc {
-                    doc: comment,
-                    ty: name,
-                });
-                let EnumMemberTag::Int(val) = repr else {
-                    return Err(IpldSchemaParseError::Enum(InvalidEnum::InvalidMemberTag))
-                };
-                representation.push(val);
-            }
-            EnumRepresentation::Int(representation)
-        }
-    };
-
     Ok(EnumType {
         members,
-        representation,
+        repr: repr.unwrap_or(EnumRepresentation::String),
     })
 }
 
-fn parse_enum_field(
-    mut field: Pairs<Rule>,
-) -> Result<(Option<String>, String, EnumMemberTag), IpldSchemaParseError> {
-    let comment = if field.peek().unwrap().as_rule() == Rule::comment {
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct EnumField {
+    doc: Option<String>,
+    name: String,
+    tag: EnumMemberTag,
+}
+
+fn parse_enum_field(mut field: Pairs<Rule>) -> Result<EnumField, IpldSchemaParseError> {
+    let doc = if field.peek().unwrap().as_rule() == Rule::comment {
         Some(parse_comment(field.next().unwrap().into_inner()))
     } else {
         None
@@ -95,7 +54,7 @@ fn parse_enum_field(
     let name = field.next().unwrap();
     let name = name.as_str().to_string();
 
-    let repr = if let Some(repr) = field.next() {
+    let tag = if let Some(repr) = field.next() {
         assert_eq!(repr.as_rule(), Rule::enum_field_repr);
 
         let mut inner = repr.into_inner();
@@ -111,7 +70,7 @@ fn parse_enum_field(
         EnumMemberTag::String(name.clone())
     };
 
-    Ok((comment, name, repr))
+    Ok(EnumField { doc, name, tag })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,15 +80,21 @@ enum EnumMemberTag {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EnumRepresentation {
-    String(Vec<String>),
-    Int(Vec<i128>),
+pub(crate) enum EnumRepresentation {
+    String,
+    Int,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum EnumRepresentationTag {
-    Int,
-    String,
+fn parse_enum_representation(mut repr: Pairs<Rule>) -> EnumRepresentation {
+    let inner = repr.next().unwrap();
+    assert!(repr.next().is_none());
+    assert_eq!(inner.as_rule(), Rule::enum_repr_value);
+
+    match inner.as_str() {
+        "int" => EnumRepresentation::Int,
+        "string" => EnumRepresentation::String,
+        _ => panic!(),
+    }
 }
 
 #[cfg(test)]
@@ -139,7 +104,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
-    fn test_enum_parse() {
+    fn enumerate() {
         let file = include_str!("../test/enums.ipldsch");
 
         let parsed_schema = IpldSchema::parse(file).unwrap();
@@ -150,24 +115,23 @@ mod tests {
                 doc: Some("Enum using string representation".to_string()),
                 ty: IpldType::Enum(EnumType {
                     members: vec![
-                        Doc {
+                        EnumField {
                             doc: None,
-                            ty: "Nope".to_string(),
+                            name: "Nope".to_string(),
+                            tag: EnumMemberTag::String("Nay".to_string()),
                         },
-                        Doc {
+                        EnumField {
                             doc: None,
-                            ty: "Yep".to_string(),
+                            name: "Yep".to_string(),
+                            tag: EnumMemberTag::String("Yay".to_string()),
                         },
-                        Doc {
+                        EnumField {
                             doc: Some("This variant is selfdescribing".to_string()),
-                            ty: "Maybe".to_string(),
+                            name: "Maybe".to_string(),
+                            tag: EnumMemberTag::String("Maybe".to_string()),
                         },
                     ],
-                    representation: EnumRepresentation::String(vec![
-                        "Nay".to_string(),
-                        "Yay".to_string(),
-                        "Maybe".to_string(),
-                    ]),
+                    repr: EnumRepresentation::String,
                 }),
             },
         );
@@ -177,20 +141,23 @@ mod tests {
                 doc: Some("Enum using integer representation".to_string()),
                 ty: IpldType::Enum(EnumType {
                     members: vec![
-                        Doc {
+                        EnumField {
                             doc: None,
-                            ty: "Nope".to_string(),
+                            name: "Nope".to_string(),
+                            tag: EnumMemberTag::Int(0),
                         },
-                        Doc {
+                        EnumField {
                             doc: None,
-                            ty: "Yep".to_string(),
+                            name: "Yep".to_string(),
+                            tag: EnumMemberTag::Int(1),
                         },
-                        Doc {
+                        EnumField {
                             doc: None,
-                            ty: "Maybe".to_string(),
+                            name: "Maybe".to_string(),
+                            tag: EnumMemberTag::Int(100),
                         },
                     ],
-                    representation: EnumRepresentation::Int(vec![0, 1, 100]),
+                    repr: EnumRepresentation::Int,
                 }),
             },
         );

@@ -4,12 +4,12 @@ use crate::{
     comment::parse_comment,
     parse::{parse_inline_type, IpldSchemaParseError},
     representation::{parse_string_pairs, StringPairs},
-    Doc, InlineIpldType, Rule,
+    InlineIpldType, Rule,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct StructType {
-    fields: Vec<Doc<StructField>>,
+    fields: Vec<StructField>,
     repr: StructRepresentation,
 }
 
@@ -33,6 +33,7 @@ pub(crate) fn parse_struct(stru: Pairs<Rule>) -> Result<StructType, IpldSchemaPa
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct StructField {
+    doc: Option<String>,
     key: String,
     value: InlineIpldType,
     optional: bool,
@@ -41,7 +42,7 @@ struct StructField {
     implicit: Option<String>,
 }
 
-fn parse_struct_field(mut field: Pairs<Rule>) -> Result<Doc<StructField>, IpldSchemaParseError> {
+fn parse_struct_field(mut field: Pairs<Rule>) -> Result<StructField, IpldSchemaParseError> {
     let doc = if field.peek().unwrap().as_rule() == Rule::comment {
         let comment = field.next().unwrap();
         Some(parse_comment(comment.into_inner()))
@@ -78,16 +79,14 @@ fn parse_struct_field(mut field: Pairs<Rule>) -> Result<Doc<StructField>, IpldSc
         (None, None)
     };
 
-    Ok(Doc {
+    Ok(StructField {
         doc,
-        ty: StructField {
-            key,
-            value,
-            optional,
-            nullable,
-            rename,
-            implicit,
-        },
+        key,
+        value,
+        optional,
+        nullable,
+        rename,
+        implicit,
     })
 }
 
