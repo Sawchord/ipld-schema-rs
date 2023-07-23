@@ -1,0 +1,17 @@
+type ExampleWithAnonDefns struct {
+	fooField optional {String:String} (rename "foo_field")
+	barField nullable optional {String:String}
+	bazField {String : nullable String}
+	wozField {String:[nullable String]}
+	boomField &ExampleWithNullable
+} representation map
+
+type Foo struct {
+  x optional Int (rename "a")
+  # This value will not be included if it is empty
+  y Int (rename "b" implicit "0")
+  msg String
+} representation stringpairs {
+  innerDelim "="
+  entryDelim ","
+}

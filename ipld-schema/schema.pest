@@ -16,6 +16,7 @@ type_def  = {
   | "bytes"
   | list_def
   | map_def
+  | struct_def
   | enum_def
   | link_def
   | unit_def
@@ -30,6 +31,17 @@ map_def        = { "{" ~ whitespace* ~ type_name ~ whitespace* ~ ":" ~ whitespac
 map_nullable   = { "nullable" ~ whitespace* }
 map_repr       = { "representation" ~ whitespace+ ~ map_repr_value }
 map_repr_value = { "map" | "listpairs" | stringpairs_repr }
+
+struct_def                 = { "struct" ~ whitespace* ~ "{" ~ struct_field* ~ multispace* ~ "}" ~ (whitespace* ~ struct_repr)? }
+struct_field               = { multispace* ~ (comment)? ~ whitespace* ~ struct_field_name ~ whitespace+ ~ struct_nullable? ~ struct_optional? ~ inline_type_def ~ struct_field_repr? ~ multispace* }
+struct_field_name          = { ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_")+ }
+struct_nullable            = { "nullable" ~ whitespace* }
+struct_optional            = { "optional" ~ whitespace* }
+struct_field_repr          = { whitespace* ~ "(" ~ struct_field_repr_rename? ~ struct_field_repr_implicit? ~ ")" }
+struct_field_repr_rename   = { "rename" ~ whitespace+ ~ "\"" ~ struct_field_name ~ "\"" ~ whitespace* }
+struct_field_repr_implicit = { "implicit" ~ whitespace+ ~ "\"" ~ struct_field_name ~ "\"" ~ whitespace* }
+struct_repr                = { "representation" ~ whitespace+ ~ struct_repr_value }
+struct_repr_value          = { "map" | "listpairs" | stringpairs_repr }
 
 enum_def              = { "enum" ~ whitespace* ~ "{" ~ enum_field+ ~ multispace* ~ "}" ~ (whitespace* ~ enum_repr)? }
 enum_field            = { multispace* ~ (comment)? ~ whitespace* ~ "|" ~ whitespace* ~ type_name ~ (whitespace+ ~ enum_field_repr)? }
@@ -48,7 +60,7 @@ stringpairs_repr_content = { multispace* ~ stringpairs_repr_inner ~ multispace* 
 stringpairs_repr_inner   = { "innerDelim" ~ whitespace+ ~ "\"" ~ stringpairs_repr_value ~ "\"" }
 stringpairs_repr_entry   = { "entryDelim" ~ whitespace+ ~ "\"" ~ stringpairs_repr_value ~ "\"" }
 // TODO: Fix this to use actually all characters
-stringpairs_repr_value   = { ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_" | "=" | ",")* }
+stringpairs_repr_value = { ('A' .. 'Z' | 'a' .. 'z' | '0'..'9' | "_" | "=" | ",")* }
 
 multispace = _{ newline | whitespace }
 newline    = _{ "\n" | "\r\n" }

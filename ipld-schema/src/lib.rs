@@ -6,6 +6,7 @@ mod list;
 mod map;
 mod parse;
 mod representation;
+mod structural;
 mod unit;
 
 use enumerate::EnumType;
@@ -13,6 +14,7 @@ use list::ListType;
 use map::MapType;
 use pest_derive::Parser;
 use std::collections::BTreeMap;
+use structural::StructType;
 use unit::UnitRepresentation;
 
 #[derive(Parser)]
@@ -41,7 +43,7 @@ pub(crate) enum IpldType {
     Map(MapType),
     Link(String),
     // TODO: Union
-    // TODO: Struct
+    Struct(StructType),
     Enum(EnumType),
     Unit(UnitRepresentation),
     Any,
